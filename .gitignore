@@ -1,19 +1,25 @@
-# Environment variables
+# Environment / secrets
 .env
+*.env
 
-# Python Cache
+# Python
 __pycache__/
-*.pyc
-
-# Virtual environment
+*.py[cod]
 .venv/
 venv/
-
-# IDE files
-.vscode/
-.project/
-.idea
+*.egg-info/
 
 # Streamlit
 .streamlit/secrets.toml
 
+# Generated output
+reports/*
+!reports/.gitkeep
+
+logs/*
+!logs/.gitkeep
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

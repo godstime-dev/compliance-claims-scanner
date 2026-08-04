@@ -22,7 +22,7 @@ from requests.exceptions import (
     SSLError,
     Timeout,
     TooManyRedirects,
-)
+    )
 
 from app.config import REQUEST_TIMEOUT, USER_AGENT
 
@@ -67,7 +67,7 @@ def _validate_url(url: str) -> str:
     if parsed.scheme not in ("http", "https"):
         raise InvalidURLError(
             "URL must begin with http:// or https://"
-        )
+            )
 
     if not parsed.netloc:
         raise InvalidURLError("Invalid domain.")
@@ -100,7 +100,7 @@ def fetch_page(url: str) -> str:
 
     headers = {
         "User-Agent": USER_AGENT,
-    }
+        }
 
     try:
         response = requests.get(
@@ -108,55 +108,55 @@ def fetch_page(url: str) -> str:
             headers=headers,
             timeout=REQUEST_TIMEOUT,
             allow_redirects=True,
-        )
+            )
 
         response.raise_for_status()
 
         content_type = response.headers.get(
             "Content-Type",
             ""
-        ).lower()
+            ).lower()
 
         if "text/html" not in content_type:
             raise FetchFailedError(
                 "URL does not point to an HTML webpage."
-            )
+                )
 
         return response.text
 
     except Timeout as exc:
         raise FetchTimeoutError(
             f"Request timed out after {REQUEST_TIMEOUT} seconds."
-        ) from exc
+            ) from exc
 
     except TooManyRedirects as exc:
         raise FetchFailedError(
             "Too many redirects."
-        ) from exc
+            ) from exc
 
     except SSLError as exc:
         raise FetchFailedError(
             "SSL certificate verification failed."
-        ) from exc
+            ) from exc
 
     except (MissingSchema, InvalidURL) as exc:
         raise InvalidURLError(
             "Invalid URL."
-        ) from exc
+            ) from exc
 
     except HTTPError as exc:
         status = exc.response.status_code
 
         raise FetchFailedError(
             f"HTTP {status}: Unable to fetch webpage."
-        ) from exc
+            ) from exc
 
     except RequestsConnectionError as exc:
         raise FetchFailedError(
             "Failed to connect to the website."
-        ) from exc
+            ) from exc
 
     except requests.RequestException as exc:
         raise FetchFailedError(
             f"Unexpected request error: {exc}"
-        ) from exc
+            ) from exc

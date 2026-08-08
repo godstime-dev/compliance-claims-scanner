@@ -67,3 +67,38 @@ PROXIMITY: Dict[str, int] = {
     }
 
 
+@dataclass(frozen=True)
+class ComplianceRule:
+    """
+    Represents a single compliance rule used by the scanner.
+
+    Each rule defines:
+    - What type of claim to detect.
+    - The regex patterns used for detection.
+    - The regulatory guidance associated with the claim.
+    - The severity and confidence assigned to matches.
+
+    Rules are immutable after creation.
+    """
+
+    
+    # Rule Identification
+    id: str
+    name: str
+    category: str
+
+    
+    # Compliance Metadata
+    severity: Severity
+    confidence: Confidence
+
+    regulation: str
+
+    
+    # User-Facing Information
+    explanation: str
+    recommendation: str
+
+    
+    # Detection Logic
+    patterns: List[str]

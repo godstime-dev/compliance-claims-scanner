@@ -176,6 +176,14 @@ WEIGHT_LOSS_TERMS = [
     "stubborn fat",
     ]
 
+CORE_WEIGHT_TERMS = [
+    "weight loss",
+    "lose weight",
+    "fat loss",
+    "burn fat",
+    "melt fat",
+    ]
+
 # GLP-1 & Prescription Drug References
 GLP1_TERMS = [
     "glp-1",
@@ -320,6 +328,11 @@ WEIGHT_PATTERN = _build_flexible_phrase_pattern(
     max_gap=20,
     )
 
+CORE_WEIGHT_PATTERN = _build_flexible_phrase_pattern(
+    CORE_WEIGHT_TERMS,
+    max_gap=20,
+    )
+
 GLP1_PATTERN = _build_word_pattern(
     GLP1_TERMS
     )
@@ -450,3 +463,116 @@ DISEASE_CLAIM_RULES = [
             ]
         )
     ]
+
+
+# Weight-Loss Claim Rules
+WEIGHT_LOSS_CLAIM_RULES = [
+
+    ComplianceRule(
+        id="FTC001",
+        name="Weight-Loss Efficacy Claim",
+        category="Weight Loss",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Compliance Guidance",
+        explanation=(
+            "The claim appears to promise or directly imply "
+            "weight loss or fat loss as a result of using the product."
+            ),
+        recommendation=(
+            "Review the claim and ensure any weight-loss or "
+            "fat-loss representation is supported by appropriate "
+            "scientific evidence."
+            ),
+        patterns=[
+            rf"\b{WEIGHT_PATTERN}\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FTC002",
+        name="Rapid Weight-Loss Claim",
+        category="Weight Loss",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Compliance Guidance",
+        explanation=(
+            "The claim appears to promise unusually rapid or "
+            "immediate weight loss."
+            ),
+        recommendation=(
+            "Review the claim and avoid implying rapid or "
+            "immediate weight loss unless the representation "
+            "is appropriately substantiated."
+            ),
+        patterns=[
+            r"\brapid\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{CORE_WEIGHT_PATTERN}\b",
+
+            r"\binstant\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{CORE_WEIGHT_PATTERN}\b",
+
+            r"\b(fast|quick)\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{CORE_WEIGHT_PATTERN}\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FTC003",
+        name="Specific Weight-Loss Result Claim",
+        category="Weight Loss",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Compliance Guidance",
+        explanation=(
+            "The claim appears to promise a specific amount "
+            "of weight loss or a specific fat-loss result."
+        ),
+        recommendation=(
+            "Review the claim and verify that any specific "
+            "weight-loss representation is supported by "
+            "appropriate evidence."
+        ),
+        patterns=[
+            r"\blose\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            r"\b\d+(?:\.\d+)?\s*"
+            r"(?:lbs?|pounds?|kg|kilograms?)\b",
+
+            r"\b\d+(?:\.\d+)?\s*"
+            r"(?:lbs?|pounds?|kg|kilograms?)\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{CORE_WEIGHT_PATTERN}\b",
+        ],
+    ),
+
+    ComplianceRule(
+        id="FTC004",
+        name="Guaranteed Weight-Loss Claim",
+        category="Weight Loss",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Compliance Guidance",
+        explanation=(
+            "The claim appears to guarantee a weight-loss "
+            "or fat-loss result."
+        ),
+        recommendation=(
+            "Review and remove guaranteed-result language "
+            "unless the representation can be appropriately "
+            "substantiated."
+        ),
+        patterns=[
+            r"\bguarantee(?:d|s)?\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            rf"\b{CORE_WEIGHT_PATTERN}\b",
+
+            rf"\b{CORE_WEIGHT_PATTERN}\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            r"\bguarantee(?:d|s)?\b",
+        ],
+    ),
+]

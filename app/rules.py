@@ -800,3 +800,17 @@ ADVERTISING_CLAIM_RULES = [
             ],
         ),
     ]
+
+
+# Rules Registry
+RULES = [
+    *DISEASE_CLAIM_RULES,
+    *WEIGHT_LOSS_CLAIM_RULES,
+    *GLP1_CLAIM_RULES,
+    *ADVERTISING_CLAIM_RULES,
+    ]
+
+_rule_ids = [rule.id for rule in RULES]
+assert len(_rule_ids) == len(set(_rule_ids)), (
+    f"Duplicate rule IDs found in RULES: "
+    f"{[rid for rid in _rule_ids if _rule_ids.count(rid) > 1]}")

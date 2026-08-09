@@ -198,3 +198,121 @@ ABSOLUTE_TERMS = [
     "instant results",
     "permanent results",
     ]
+
+
+# Regex Fragment Builders
+def _build_word_pattern(words: list[str]) -> str:
+    """
+    Build a regex alternation from literal words or phrases.
+
+    Each term is escaped before being added to the pattern so
+    that regex-special characters inside vocabulary terms are
+    treated as literal characters.
+    """
+
+    escaped = [
+        re.escape(word)
+        for word in words
+    ]
+
+    return "(?:" + "|".join(escaped) + ")"
+
+
+def _build_verb_pattern(verbs: list[str]) -> str:
+    """
+    Build a regex pattern that matches common English verb forms.
+
+    Handles common forms such as:
+        treat -> treat, treats, treated, treating
+        eliminate -> eliminate, eliminates, eliminated, eliminating
+    """
+
+    patterns = []
+
+    for verb in verbs:
+        escaped_verb = re.escape(verb)
+
+        if verb.endswith("e"):
+            ing_form = re.escape(verb[:-1] + "ing")
+        else:
+            ing_form = rf"{escaped_verb}ing"
+
+        patterns.append(
+            rf"{escaped_verb}"
+            rf"(?:s|ed)?"
+            rf"|{ing_form}"
+        )
+
+    return "(?:" + "|".join(patterns) + ")"
+
+
+def _build_flexible_phrase_pattern(
+    phrases: list[str],
+    max_gap: int = 20,
+    ) -> str:
+    """
+    Build a regex pattern for multi-word phrases.
+
+    Allows a limited amount of text between words.
+
+    Example:
+        "melt fat"
+
+    Can match:
+        "melt fat"
+        "melt away fat"
+        "melts stubborn fat"
+        "melt away stubborn fat"
+    """
+
+    patterns = []
+
+    for phrase in phrases:
+        words = phrase.split()
+
+        if len(words) == 1:
+            patterns.append(
+                re.escape(words[0])
+            )
+            continue
+
+        escaped_words = [
+            re.escape(word)
+            for word in words
+        ]
+
+        pattern = rf".{{0,{max_gap}}}".join(escaped_words)
+
+        patterns.append(pattern)
+
+    return "(?:" + "|".join(patterns) + ")"
+
+
+# Shared Regex Fragments
+CLAIM_VERB_PATTERN = _build_verb_pattern(
+    CLAIM_VERBS
+    )
+
+DISEASE_PATTERN = _build_word_pattern(
+    DISEASE_TERMS
+    )
+
+SYMPTOM_PATTERN = _build_word_pattern(
+    SYMPTOM_TERMS
+    )
+
+HEALTH_PATTERN = "(?:" + "|".join([DISEASE_PATTERN, SYMPTOM_PATTERN]) + ")"
+
+WEIGHT_PATTERN = _build_flexible_phrase_pattern(
+    WEIGHT_LOSS_TERMS,
+    max_gap=20,
+    )
+
+GLP1_PATTERN = _build_word_pattern(
+    GLP1_TERMS
+    )
+
+ABSOLUTE_PATTERN = _build_flexible_phrase_pattern(
+    ABSOLUTE_TERMS,
+    max_gap=20,
+    )

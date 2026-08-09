@@ -102,3 +102,99 @@ class ComplianceRule:
     
     # Detection Logic
     patterns: List[str]
+
+# SHARED VOCABULARY
+# Disease Claim Verbs
+CLAIM_VERBS = [
+    "cure",
+    "treat",
+    "prevent",
+    "reverse",
+    "heal",
+    "eliminate",
+    "fight",
+    ]
+
+# Diseases & Medical Conditions
+DISEASE_TERMS = [
+    "diabetes",
+    "prediabetes",
+    "arthritis",
+    "osteoarthritis",
+    "cancer",
+    "heart disease",
+    "cardiovascular disease",
+    "high blood pressure",
+    "hypertension",
+    "obesity",
+    "infection",
+    "virus",
+    "flu",
+    "covid",
+    "alzheimer",
+    "parkinson",
+    "depression",
+    "anxiety disorder",
+    ]
+
+# Symptoms & Health Conditions
+SYMPTOM_TERMS = [
+    "inflammation",
+    "chronic inflammation",
+    "joint pain",
+    "back pain",
+    "muscle pain",
+    "blood sugar",
+    "cholesterol",
+    "insomnia",
+    "fatigue",
+    "brain fog",
+    "memory loss",
+    "cognitive decline",
+    "immune system",
+    "gut health",
+    "digestive health",
+    ]
+
+# Weight-Loss Language
+WEIGHT_LOSS_TERMS = [
+    "weight loss",
+    "lose weight",
+    "burn fat",
+    "fat burning",
+    "fat burner",
+    "melt fat",
+    "shred fat",
+    "drop pounds",
+    "rapid weight loss",
+    "instant weight loss",
+    "belly fat",
+    "stubborn fat",
+    ]
+
+# GLP-1 & Prescription Drug References
+GLP1_TERMS = [
+    "glp-1",
+    "glp1",
+    "ozempic",
+    "wegovy",
+    "mounjaro",
+    "zepbound",
+    "semaglutide",
+    "tirzepatide",
+    "natural ozempic",
+    ]
+
+# Absolute / Definitive Marketing Language
+ABSOLUTE_TERMS = [
+    "guaranteed",
+    "scientifically proven",
+    "clinically proven",
+    "proven to work",
+    "works every time",
+    "100% effective",
+    "no side effects",
+    "miracle",
+    "instant results",
+    "permanent results",
+    ]

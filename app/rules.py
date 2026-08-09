@@ -195,17 +195,16 @@ GLP1_TERMS = [
 
 # Absolute / Definitive Marketing Language
 ABSOLUTE_TERMS = [
-    "guaranteed",
     "scientifically proven",
     "clinically proven",
     "proven to work",
     "works every time",
     "100% effective",
-    "no side effects",
-    "miracle",
     "instant results",
     "permanent results",
     ]
+
+CONTEXTUAL_ABSOLUTE_TERMS = ["guaranteed",]
 
 
 # Regex Fragment Builders
@@ -686,6 +685,118 @@ GLP1_CLAIM_RULES = [
             r"works\s+the\s+same)\b"
             rf".{{0,{PROXIMITY['MEDIUM']}}}"
             rf"\b{GLP1_PATTERN}\b",
+            ],
+        ),
+    ]
+
+
+# Absolute / Unsubstantiated Advertising Claim Rules
+ADVERTISING_CLAIM_RULES = [
+
+    ComplianceRule(
+        id="FTC020",
+        name="Guaranteed Result Claim",
+        category="Advertising Claims",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Advertising Principles",
+        explanation=(
+            "The claim appears to guarantee a specific product "
+            "result or outcome."
+            ),
+        recommendation=(
+            "Review the claim and ensure that any guaranteed "
+            "result is supported by appropriate evidence. "
+            "Consider using qualified language where appropriate."
+            ),
+        patterns=[
+            rf"\b{ABSOLUTE_PATTERN}\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FTC021",
+        name="Scientific Proof Claim",
+        category="Advertising Claims",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Advertising Principles",
+        explanation=(
+            "The claim presents the product or its effects as "
+            "scientifically or clinically proven."
+            ),
+        recommendation=(
+            "Verify that the claim is supported by competent "
+            "and reliable scientific evidence and that the "
+            "evidence supports the specific representation being made."
+            ),
+        patterns=[
+            r"\bscientifically\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            r"\b(?:proven|validated|confirmed)\b",
+
+            r"\bclinically\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            r"\b(?:proven|validated|confirmed|guaranteed)\b",
+
+            r"\b(?:proven|validated|confirmed)\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            r"\b(?:to\s+cure|to\s+treat|to\s+eliminate|to\s+reverse)\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FTC022",
+        name="No Side Effects Claim",
+        category="Advertising Claims",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Advertising Principles",
+        explanation=(
+            "The claim appears to represent the product as "
+            "having no side effects or risks."
+            ),
+        recommendation=(
+            "Review absolute safety language and verify that "
+            "the representation is appropriately supported."
+            ),
+        patterns=[
+            r"\bno\s+side\s+effects\b",
+            r"\bzero\s+side\s+effects\b",
+            r"\bside[- ]effect[- ]free\b",
+            r"\bcompletely\s+safe\b",
+            r"\b100%\s+safe\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FTC023",
+        name="Miracle or Guaranteed-Efficacy Claim",
+        category="Advertising Claims",
+        severity=Severity.MEDIUM,
+        confidence=Confidence.MEDIUM,
+        regulation="FTC Health Products Advertising Principles",
+        explanation=(
+            "The claim uses absolute or extraordinary language "
+            "that may imply guaranteed or exceptional product efficacy."
+            ),
+        recommendation=(
+            "Review the claim and verify that the representation "
+            "is appropriately substantiated. Consider replacing "
+            "absolute language with a more specific and supportable claim."
+            ),
+        patterns=[
+            r"\bmiracle\s+(?:product|supplement|formula|pill|solution)\b",
+
+            r"\bmagic\s+(?:pill|supplement|formula|solution)\b",
+
+            r"\bguarantee(?:d|s)?\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            r"\b(?:results|success|effective|efficacy|benefits)\b",
+
+            r"\b(?:results|success|effective|efficacy|benefits)\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            r"\bguarantee(?:d|s)?\b",
             ],
         ),
     ]

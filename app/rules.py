@@ -108,10 +108,7 @@ class ComplianceRule:
 CLAIM_VERBS = [
     "cure",
     "treat",
-    "prevent",
-    "reverse",
     "heal",
-    "eliminate",
     "fight",
     ]
 
@@ -135,6 +132,13 @@ DISEASE_TERMS = [
     "parkinson",
     "depression",
     "anxiety disorder",
+    ]
+
+COMMON_ILLNESS_TERMS = [
+    "flu",
+    "covid",
+    "virus",
+    "infection"
     ]
 
 # Symptoms & Health Conditions
@@ -293,6 +297,12 @@ CLAIM_VERB_PATTERN = _build_verb_pattern(
     CLAIM_VERBS
     )
 
+PREVENT_PATTERN = _build_verb_pattern(["prevent"])
+
+REVERSE_PATTERN = _build_verb_pattern(["reverse"])
+
+ELIMINATE_PATTERN = _build_verb_pattern(["eliminate"])
+
 DISEASE_PATTERN = _build_word_pattern(
     DISEASE_TERMS
     )
@@ -300,6 +310,8 @@ DISEASE_PATTERN = _build_word_pattern(
 SYMPTOM_PATTERN = _build_word_pattern(
     SYMPTOM_TERMS
     )
+
+COMMON_ILLNESS_PATTERN = _build_verb_pattern(COMMON_ILLNESS_TERMS)
 
 HEALTH_PATTERN = "(?:" + "|".join([DISEASE_PATTERN, SYMPTOM_PATTERN]) + ")"
 
@@ -316,3 +328,125 @@ ABSOLUTE_PATTERN = _build_flexible_phrase_pattern(
     ABSOLUTE_TERMS,
     max_gap=20,
     )
+
+
+# Disease Claim Rules
+DISEASE_CLAIM_RULES = [
+
+    ComplianceRule(
+        id="FDA001",
+        name="Disease Treatment Claim",
+        category="Disease Claims",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FDA DSHEA - Disease Claims",
+        explanation=(
+            "The claim appears to represent the supplement as "
+            "treating, curing, healing, reversing, or eliminating "
+            "a disease or health condition."
+            ),
+        recommendation=(
+            "Review the claim and consider replacing disease-"
+            "treatment language with an appropriate "
+            "structure/function claim."
+            ),
+        patterns=[
+            rf"\b{CLAIM_VERB_PATTERN}\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            rf"\b{HEALTH_PATTERN}\b",
+
+            rf"\b{HEALTH_PATTERN}\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            rf"\b{CLAIM_VERB_PATTERN}\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FDA002",
+        name="Disease Prevention Claim",
+        category="Disease Claims",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FDA DSHEA - Disease Claims",
+        explanation=(
+            "The claim appears to represent the supplement "
+            "as preventing a disease or medical condition."
+            ),
+        recommendation=(
+            "Review the claim and consider whether it can be "
+            "rephrased as a permissible structure/function claim."
+            ),
+        patterns=[
+            rf"\b{PREVENT_PATTERN}\b"
+            rf".{{0,{PROXIMITY['LONG']}}}"
+            rf"\b{HEALTH_PATTERN}\b",
+
+            rf"\b{HEALTH_PATTERN}\b"
+            rf".{{0,{PROXIMITY['LONG']}}}"
+            rf"\b{PREVENT_PATTERN}\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FDA003",
+        name="Disease Reversal Claim",
+        category="Disease Claims",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FDA DSHEA - Disease Claims",
+        explanation=(
+            "The claim appears to represent the supplement "
+            "as reversing or eliminating a disease or health condition."
+            ),
+        recommendation=(
+            "Review the claim and remove or revise disease-reversal "
+            "language unless the claim has been appropriately "
+            "substantiated and reviewed."
+            ),
+        patterns=[
+            rf"\b{REVERSE_PATTERN}\b"
+            rf".{{0,{PROXIMITY['LONG']}}}"
+            rf"\b({HEALTH_PATTERN})\b",
+
+            rf"\b{ELIMINATE_PATTERN}\b"
+            rf".{{0,{PROXIMITY['LONG']}}}"
+            rf"\b({HEALTH_PATTERN})\b",
+
+            rf"\b({HEALTH_PATTERN})\b"
+            rf".{{0,{PROXIMITY['LONG']}}}"
+            rf"\b(?:{REVERSE_PATTERN}|{ELIMINATE_PATTERN})\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FDA004",
+        name="Common Illness Claim",
+        category="Disease Claims",
+        severity=Severity.MEDIUM,
+        confidence=Confidence.MEDIUM,
+        regulation="FDA DSHEA - Disease Claims",
+        explanation=(
+            "The claim appears to closely associate the supplement "
+            "with treating, curing, or preventing a common illness "
+            "such a flu, COVID, or a viral infection. This term is "
+            "also common in unrelated marketing copy, so review is "
+            "recommended before treating this as a confirmed violation."
+            ),
+        recommendation=(
+            "Review the surrounding context. If this describes immune "
+            "support language rather than a direct treatment claim, "
+            "it may be compliant as a structure/function claim."
+            ),
+        patterns=[
+            rf"\b{CLAIM_VERB_PATTERN}\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{COMMON_ILLNESS_PATTERN}\b",
+            rf"\b{COMMON_ILLNESS_PATTERN}\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{CLAIM_VERB_PATTERN}\b",
+            rf"\b{PREVENT_PATTERN}\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{COMMON_ILLNESS_PATTERN}\b",
+            ]
+        )
+    ]

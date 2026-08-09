@@ -582,3 +582,110 @@ WEIGHT_LOSS_CLAIM_RULES = [
         ],
     ),
 ]
+
+
+# GLP-1 / Drug Comparison Claim Rules
+GLP1_CLAIM_RULES = [
+
+    ComplianceRule(
+        id="FTC010",
+        name="GLP-1 Drug Comparison Claim",
+        category="Drug Comparisons",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Advertising Principles",
+        explanation=(
+            "The claim directly compares the supplement to a "
+            "prescription weight-loss medication or GLP-1 drug."
+            ),
+        recommendation=(
+            "Review the comparison and ensure that any "
+            "representation about equivalence, superiority, "
+            "or comparable effects is appropriately substantiated."
+            ),
+        patterns=[
+            rf"\b{GLP1_PATTERN}\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            r"\b(?:alternative|replacement|substitute|"
+            r"equivalent|similar|same|better|stronger|"
+            r"works\s+like|works\s+as)\b",
+
+            r"\b(?:alternative|replacement|substitute|"
+            r"equivalent|similar|same|better|stronger|"
+            r"works\s+like|works\s+as)\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            rf"\b{GLP1_PATTERN}\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FTC011",
+        name="Natural GLP-1 Drug Substitute Claim",
+        category="Drug Comparisons",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        regulation="FTC Health Products Advertising Principles",
+        explanation=(
+            "The claim appears to position the supplement as a "
+            "natural substitute or alternative to a prescription "
+            "GLP-1 medication."
+            ),
+        recommendation=(
+            "Review and reconsider language positioning the "
+            "supplement as a natural replacement for a prescription "
+            "drug."
+            ),
+        patterns=[
+            rf"\bnatural\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{GLP1_PATTERN}\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            r"\b(?:alternative|replacement|substitute)\b",
+
+            r"\b(?:alternative|replacement|substitute)\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            r"\bnatural\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{GLP1_PATTERN}\b",
+
+            rf"\bnatural\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            r"\b(?:alternative|replacement|substitute)\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{GLP1_PATTERN}\b",
+            ],
+        ),
+
+    ComplianceRule(
+        id="FTC012",
+        name="GLP-1 Effect Claim",
+        category="Drug Comparisons",
+        severity=Severity.HIGH,
+        confidence=Confidence.MEDIUM,
+        regulation="FTC Health Products Advertising Principles",
+        explanation=(
+            "The claim appears to associate the supplement with "
+            "the effects or mechanism of a GLP-1 medication."
+            ),
+        recommendation=(
+            "Review claims implying that the product produces "
+            "prescription-drug-like GLP-1 effects and verify "
+            "appropriate substantiation."
+            ),
+        patterns=[
+            rf"\b({GLP1_PATTERN})\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            r"\b(?:same\s+(?:effects?|results?)|"
+            r"similar\s+(?:effects?|results?)|"
+            r"results\s+without|results\s+like|"
+            r"works\s+the\s+same)\b",
+
+            r"\b(?:same\s+(?:effects?|results?)|"
+            r"similar\s+(?:effects?|results?)|"
+            r"results\s+without|results\s+like|"
+            r"works\s+the\s+same)\b"
+            rf".{{0,{PROXIMITY['MEDIUM']}}}"
+            rf"\b{GLP1_PATTERN}\b",
+            ],
+        ),
+    ]

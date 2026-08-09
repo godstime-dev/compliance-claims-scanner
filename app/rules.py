@@ -124,10 +124,6 @@ DISEASE_TERMS = [
     "high blood pressure",
     "hypertension",
     "obesity",
-    "infection",
-    "virus",
-    "flu",
-    "covid",
     "alzheimer",
     "parkinson",
     "depression",
@@ -454,13 +450,23 @@ DISEASE_CLAIM_RULES = [
             rf"\b{CLAIM_VERB_PATTERN}\b"
             rf".{{0,{PROXIMITY['SHORT']}}}"
             rf"\b{COMMON_ILLNESS_PATTERN}\b",
+
             rf"\b{COMMON_ILLNESS_PATTERN}\b"
             rf".{{0,{PROXIMITY['SHORT']}}}"
             rf"\b{CLAIM_VERB_PATTERN}\b",
+
             rf"\b{PREVENT_PATTERN}\b"
             rf".{{0,{PROXIMITY['SHORT']}}}"
             rf"\b{COMMON_ILLNESS_PATTERN}\b",
-            ]
+
+            rf"\b{ELIMINATE_PATTERN}\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{COMMON_ILLNESS_PATTERN}\b",
+            
+            rf"\b{REVERSE_PATTERN}\b"
+            rf".{{0,{PROXIMITY['SHORT']}}}"
+            rf"\b{COMMON_ILLNESS_PATTERN}\b",
+            ],
         )
     ]
 

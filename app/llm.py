@@ -138,7 +138,13 @@ def _call_provider(
                     {"role": "user", "content": user_prompt},
                     ],
                 )
-            return response.choices[0].message.content
+            
+            content = response.choices[0].message.content
+            if not content:
+                raise LLMRequestError(
+                    "OpenAI returned an empty response."
+                    )
+            return content
 
         except openai.APITimeoutError as exc:
             raise LLMTimeoutError(
@@ -163,7 +169,12 @@ def _call_provider(
                     {"role": "user", "content": user_prompt},
                     ],
                 )
-            return response.content[0].text
+            content = response.content[0].text
+            if not content:
+                raise LLMRequestError(
+                    "Anthropic returned an empty response."
+                    )
+            return content
 
         except anthropic.APITimeoutError as exc:
             raise LLMTimeoutError(

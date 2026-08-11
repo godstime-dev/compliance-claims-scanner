@@ -21,8 +21,6 @@ from typing import List
 from app.rules import (
     RULES,
     ComplianceRule,
-    Severity,
-    Confidence
     )
 
 
@@ -51,8 +49,8 @@ class ComplianceFinding:
     category: str
 
     # Detection Metadata
-    severity: Severity
-    confidence: Confidence
+    severity: str
+    confidence: str
 
     # Matched Content
     matched_text: str

@@ -172,3 +172,57 @@ def extract_context(
     context = text[context_start:context_end]
 
     return " ".join(context.split())
+
+
+# Rule Matching
+def scan_text(
+    text: str,
+    rules: List[ComplianceRule] = RULES,
+    ) -> List[ComplianceFinding]:
+    """
+    Scan cleaned webpage text against the compliance rule library.
+
+    Each regex match becomes a structured ComplianceFinding.
+
+    Args:
+        text: Cleaned webpage text.
+        rules: Compliance rules to apply.
+
+    Returns:
+        A list of detected compliance findings.
+    """
+
+    findings: List[ComplianceFinding] = []
+
+    for rule in rules:
+        patterns = COMPILED_RULES[rule.id]
+
+        for pattern in patterns:
+            for match in pattern.finditer(text):
+                matched_text = match.group(0).strip()
+
+                if not matched_text:
+                    continue
+
+                context = extract_context(
+                    text=text,
+                    start=match.start(),
+                    end=match.end(),
+                    )
+
+                finding = ComplianceFinding(
+                    rule_id=rule.id,
+                    rule_name=rule.name,
+                    category=rule.category,
+                    severity=rule.severity.value,
+                    confidence=rule.confidence.value,
+                    matched_text=matched_text,
+                    context=context,
+                    regulation=rule.regulation,
+                    explanation=rule.explanation,
+                    recommendation=rule.recommendation,
+                    )
+
+                findings.append(finding)
+
+    return findings

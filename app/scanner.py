@@ -28,7 +28,7 @@ from app.rules import (
 
 # Scanner Configuration
 """
-Number of characters to include around a matched 
+Number of characters to include on each side of a matched 
 claim when generating contextual text for a finding.
 """
 CONTEXT_WINDOW = 120
@@ -140,3 +140,35 @@ def compile_rules(
     return compiled_rules
 
 COMPILED_RULES = compile_rules(RULES)
+
+
+# Context Extraction
+def extract_context(
+    text: str,
+    start: int,
+    end: int,
+    window: int = CONTEXT_WINDOW,
+    ) -> str:
+    """
+    Extract surrounding text around a regex match.
+
+    The returned context is limited to a configurable number
+    of characters before and after the matched text.
+
+    Args:
+        text: Full cleaned webpage text.
+        start: Start position of the regex match.
+        end: End position of the regex match.
+        window: Number of surrounding characters to include.
+
+    Returns:
+        A trimmed context string containing the matched text
+        and surrounding webpage content.
+    """
+
+    context_start = max(0, start - window)
+    context_end = min(len(text), end + window)
+
+    context = text[context_start:context_end]
+
+    return " ".join(context.split())

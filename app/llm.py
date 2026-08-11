@@ -31,3 +31,30 @@ from app.config import (
     REQUEST_TIMEOUT,
     )
 from app.scanner import ComplianceFinding
+
+
+# LLM Exceptions
+class LLMError(Exception):
+    """Base exception for LLM-related failures."""
+
+class LLMTimeoutError(LLMError):
+    """Raised when an LLM request times out."""
+
+class LLMRequestError(LLMError):
+    """Raised when an LLM request fails."""
+
+# Claim Type
+class ClaimType(str, Enum):
+    """
+    Classification of how the flagged language appears
+    within its surrounding context.
+
+    This classification provides contextual information only.
+    It does not modify the rule's severity or confidence.
+    """
+
+    DIRECT_CLAIM = "direct_claim"
+    QUALIFIED_CLAIM = "qualified_claim"
+    COMPARATIVE_CLAIM = "comparative_claim"
+    INCIDENTAL_MENTION = "incidental_mention"
+    AMBIGUOUS = "ambiguous"

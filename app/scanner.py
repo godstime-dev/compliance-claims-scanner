@@ -253,3 +253,36 @@ def build_scan_result(
         ruleset_version=RULESET_VERSION,
         findings=findings,
         )
+
+
+# Public Scanner Interface
+def scan(
+    url: str,
+    text: str,
+    rules: List[ComplianceRule] = RULES,
+    ) -> ScanResult:
+    """
+    Run a complete compliance scan on cleaned webpage text.
+
+    This is the main public interface for the scanner.
+
+    Args:
+        url: URL of the webpage being scanned.
+        text: Cleaned webpage text.
+        rules: Compliance rules to apply.
+
+    Returns:
+        A complete ScanResult containing all findings
+        and scan-level summary information.
+    """
+
+    findings = scan_text(
+        text=text,
+        rules=rules,
+        )
+
+    return build_scan_result(
+        url=url,
+        text=text,
+        findings=findings,
+        )

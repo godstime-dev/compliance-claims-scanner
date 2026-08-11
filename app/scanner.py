@@ -17,9 +17,11 @@ Its responsibility is limited to rule-based claim detection.
 import re
 from dataclasses import dataclass
 from typing import List
+from datetime import datetime, timezone
 
 from app.rules import (
     RULES,
+    RULESET_VERSION,
     ComplianceRule,
     )
 
@@ -60,3 +62,50 @@ class ComplianceFinding:
     regulation: str
     explanation: str
     recommendation: str
+
+
+# Scan Result Model
+@dataclass(frozen=True)
+class ScanResult:
+    """
+    Represents the complete result of scanning a webpage.
+
+    Contains the original scan metadata and all detected findings.
+    Summary counts are computed properties rather than stored
+    fields, so they can never drift out of sync with `findings`.
+    """
+
+    # Scan Metadata
+    url: str
+    text_length: int
+    scanned_at: datetime
+    ruleset_version: str
+
+    # Findings
+    findings: List[ComplianceFinding]
+
+    @property
+    def total_findings(self) -> int:
+        return len(self.findings)
+
+    @property
+    def high_severity_count(self) -> int:
+        return sum(
+            1 for f in self.findings if f.severity == "High"
+            )
+
+    @property
+    def medium_severity_count(self) -> int:
+        return sum(
+            1 for f in self.findings if f.severity == "Medium"
+            )
+
+    @property
+    def low_severity_count(self) -> int:
+        return sum(
+            1 for f in self.findings if f.severity == "Low"
+            )
+
+    @property
+    def has_findings(self) -> bool:
+        return len(self.findings) > 0

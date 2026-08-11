@@ -226,3 +226,30 @@ def scan_text(
                 findings.append(finding)
 
     return findings
+
+
+# Scan Result Builder
+def build_scan_result(
+    url: str,
+    text: str,
+    findings: List[ComplianceFinding],
+    ) -> ScanResult:
+    """
+    Build a complete ScanResult from detected findings.
+
+    Args:
+        url: URL of the webpage that was scanned.
+        text: Cleaned webpage text.
+        findings: Findings returned by scan_text().
+
+    Returns:
+        A populated ScanResult instance.
+    """
+
+    return ScanResult(
+        url=url,
+        text_length=len(text),
+        scanned_at=datetime.now(timezone.utc),
+        ruleset_version=RULESET_VERSION,
+        findings=findings,
+        )

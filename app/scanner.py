@@ -109,3 +109,34 @@ class ScanResult:
     @property
     def has_findings(self) -> bool:
         return len(self.findings) > 0
+
+
+# Regex Compilation
+def compile_rules(
+    rules: List[ComplianceRule],
+    ) -> dict[str, List[re.Pattern]]:
+    """
+    Compile all regex patterns associated with the supplied rules.
+
+    Args:
+        rules: Compliance rules containing raw regex patterns.
+
+    Returns:
+        A dictionary mapping each rule ID to its compiled
+        regular expression patterns.
+    """
+
+    compiled_rules = {}
+
+    for rule in rules:
+        compiled_rules[rule.id] = [
+            re.compile(
+                pattern,
+                re.IGNORECASE,
+                )
+            for pattern in rule.patterns
+            ]
+
+    return compiled_rules
+
+COMPILED_RULES = compile_rules(RULES)

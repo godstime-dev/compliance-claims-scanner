@@ -58,3 +58,26 @@ class ClaimType(str, Enum):
     COMPARATIVE_CLAIM = "comparative_claim"
     INCIDENTAL_MENTION = "incidental_mention"
     AMBIGUOUS = "ambiguous"
+
+
+# LLM Analysis Model
+@dataclass(frozen=True)
+class LLMAnalysis:
+    """
+    Structured contextual analysis produced by the LLM.
+
+    This model contains only AI-generated contextual information.
+    Rule-assigned severity and confidence are intentionally absent
+    and must never be modified by the LLM.
+    """
+    
+    # Contextual Classification
+    claim_type: ClaimType
+
+    # Contextual Analysis
+    contextual_explanation: str
+    hedging_detected: bool
+    qualification_notes: str
+
+    # Review Guidance
+    review_recommendation: str

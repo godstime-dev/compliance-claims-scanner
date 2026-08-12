@@ -304,3 +304,90 @@ Remember:
 - Do not provide legal advice.
 - Base the analysis only on the supplied text.
 """
+
+
+# LLM Response Parsing
+def _parse_llm_response(response_text: str) -> LLMAnalysis:
+    """
+    Parse and validate the raw LLM response.
+
+    Args:
+        response_text: Raw JSON response returned by the LLM.
+
+    Returns:
+        A validated LLMAnalysis instance.
+
+    Raises:
+        LLMRequestError: If the response is invalid or malformed.
+    """
+
+    try:
+        data = json.loads(response_text)
+
+    except json.JSONDecodeError as exc:
+        raise LLMRequestError(
+            "LLM returned invalid JSON."
+            ) from exc
+
+    if not isinstance(data, dict):
+        raise LLMRequestError(
+            "LLM response must be a JSON object."
+            )
+
+    required_fields = {
+        "claim_type",
+        "contextual_explanation",
+        "hedging_detected",
+        "qualification_notes",
+        "review_recommendation",
+        }
+
+    missing_fields = required_fields - data.keys()
+
+    if missing_fields:
+        raise LLMRequestError(
+            f"LLM response is missing required fields: "
+            f"{', '.join(sorted(missing_fields))}"
+            )
+
+    try:
+        claim_type = ClaimType(data["claim_type"])
+
+    except ValueError as exc:
+        raise LLMRequestError(
+            f"Invalid claim type returned by LLM: "
+            f"{data['claim_type']}"
+            ) from exc
+
+    if not isinstance(data["hedging_detected"], bool):
+        raise LLMRequestError(
+            "hedging_detected must be a boolean."
+            )
+
+    if not isinstance(data["contextual_explanation"],str):
+        raise LLMRequestError(
+            "contextual_explanation must be a string."
+            )
+
+    if not data["contextual_explanation"].strip():
+        raise LLMRequestError(
+            "contextual_explanation must not be empty."
+            )
+
+    if not isinstance(data["qualification_notes"],str,):
+        raise LLMRequestError(
+            "qualification_notes must be a string."
+            )
+
+    if not isinstance(data["review_recommendation"],str,):
+        raise LLMRequestError(
+            "review_recommendation must be a string."
+            )
+
+    return LLMAnalysis(
+        claim_type=claim_type,
+        contextual_explanation=data["contextual_explanation"].strip(),
+        hedging_detected=data["hedging_detected"],
+        qualification_notes=data["qualification_notes"].strip(),
+        review_recommendation=data["review_recommendation"].strip(),
+        )

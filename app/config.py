@@ -37,6 +37,10 @@ REQUEST_TIMEOUT = int(
     os.getenv("REQUEST_TIMEOUT", 30)
     )
 
+LLM_MAX_CONCURRENT_REQUESTS = int(
+    os.getenv("LLM_MAX_CONCURRENT_REQUESTS", 5)
+    )
+
 USER_AGENT = os.getenv(
     "USER_AGENT",
     "ComplianceClaimsScanner/1.0"

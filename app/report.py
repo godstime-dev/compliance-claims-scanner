@@ -109,3 +109,127 @@ def build_report(
         ruleset_version=ruleset_version,
         findings=report_findings,
         )
+
+
+# Human-Readable Report Formatting
+def format_report(report: ComplianceReport) -> str:
+    """
+    Format a ComplianceReport as a human-readable text report.
+
+    Deterministic rule information and optional LLM analysis
+    are displayed as separate sections.
+
+    If LLM analysis is unavailable, the report explicitly states
+    that the analysis could not be generated.
+
+    Args:
+        report: Structured compliance report.
+
+    Returns:
+        A formatted plain-text representation of the report.
+    """
+
+    lines = [
+        "COMPLIANCE SCREENING REPORT",
+        "=" * 60,
+        "",
+        f"URL: {report.url}",
+        f"Scanned: {report.scanned_at.isoformat()}",
+        f"Ruleset Version: {report.ruleset_version}",
+        "",
+        "SUMMARY",
+        "-" * 60,
+        f"Total Findings: {report.total_findings}",
+        f"High Severity: {report.high_severity_count}",
+        f"Medium Severity: {report.medium_severity_count}",
+        f"Low Severity: {report.low_severity_count}",
+        "",
+        ]
+
+    if not report.findings:
+        lines.extend(
+            [
+                "No compliance findings were identified.",
+                "",
+            ]
+        )
+
+        return "\n".join(lines)
+
+    for index, report_finding in enumerate(
+        report.findings,
+        start=1,
+        ):
+        finding = report_finding.finding
+        analysis = report_finding.analysis
+
+        lines.extend(
+            [
+                f"FINDING {index}",
+                "=" * 60,
+                "",
+                "RULE-BASED FINDING",
+                "-" * 60,
+                f"Rule: {finding.rule_name}",
+                f"Rule ID: {finding.rule_id}",
+                f"Category: {finding.category}",
+                f"Severity: {finding.severity.upper()}",
+                f"Confidence: {finding.confidence.upper()}",
+                "",
+                "Matched Text:",
+                f'"{finding.matched_text}"',
+                "",
+                "Context:",
+                finding.context,
+                "",
+                "Relevant Guidance:",
+                finding.regulation,
+                "",
+                "Rule Recommendation:",
+                finding.recommendation,
+                "",
+                "AI CONTEXTUAL ANALYSIS",
+                "-" * 60,
+            ]
+        )
+
+        if analysis is None:
+            lines.extend(
+                [
+                    "AI analysis unavailable for this finding.",
+                    "",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    f"Claim Type: {analysis.claim_type.value}",
+                    (
+                        "Hedging Detected: "
+                        f"{'Yes' if analysis.hedging_detected else 'No'}"
+                    ),
+                    "",
+                    "Contextual Explanation:",
+                    analysis.contextual_explanation,
+                    "",
+                ]
+            )
+
+            if analysis.qualification_notes:
+                lines.extend(
+                    [
+                        "Qualification Notes:",
+                        analysis.qualification_notes,
+                        "",
+                    ]
+                )
+
+            lines.extend(
+                [
+                    "AI Review Recommendation:",
+                    analysis.review_recommendation,
+                    "",
+                ]
+            )
+
+    return "\n".join(lines)

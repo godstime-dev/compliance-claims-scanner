@@ -22,6 +22,8 @@ from typing import List, Optional, Tuple
 from app.llm import LLMAnalysis
 from app.scanner import ComplianceFinding
 
+from pathlib import Path
+
 
 # Report Models
 @dataclass(frozen=True)
@@ -233,3 +235,46 @@ def format_report(report: ComplianceReport) -> str:
             )
 
     return "\n".join(lines)
+
+
+# Text Report Output
+REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
+
+def save_text_report(
+    report: ComplianceReport,
+    output_path: Optional[Path] = None,
+    ) -> Path:
+    """
+    Save a ComplianceReport as a plain-text file.
+
+    If no output path is provided, the report is saved inside
+    the project's reports directory using a timestamp-based
+    filename.
+
+    Args:
+        report: Structured compliance report.
+        output_path: Optional path for the output file.
+
+    Returns:
+        Path to the saved report.
+    """
+
+    if output_path is None:
+        timestamp = report.scanned_at.strftime("%Y%m%d_%H%M%S")
+        base_name = f"compliance_report_{timestamp}"
+
+        output_path = REPORTS_DIR / f"{base_name}.txt"
+
+        counter = 1
+        while output_path.exists():
+            output_path = REPORTS_DIR / f"{base_name}_{counter}.txt"
+            counter += 1
+
+    output_path.parent.mkdir(parents=True, exist_ok=True,)
+
+    output_path.write_text(
+        format_report(report),
+        encoding="utf-8",
+        )
+
+    return output_path

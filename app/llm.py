@@ -259,7 +259,6 @@ in the supplied text.
 Return ONLY valid JSON matching the requested schema.
 """
 
-
 def build_user_prompt(finding: ComplianceFinding) -> str:
     """
     Build the user prompt for a single compliance finding.
@@ -464,7 +463,7 @@ def analyze_findings(
         If analysis fails for a finding, the corresponding
         LLMAnalysis value is None.
     """
-
+    
     if not findings:
         return []
 

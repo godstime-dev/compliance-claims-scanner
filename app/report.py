@@ -64,3 +64,48 @@ class ComplianceReport:
     @property
     def low_severity_count(self) -> int:
         return sum(1 for rf in self.findings if rf.finding.severity == "Low")
+
+
+# Report Construction
+def build_report(
+    url: str,
+    scanned_at: datetime,
+    ruleset_version: str,
+    results: List[
+        Tuple[
+            ComplianceFinding,
+            Optional[LLMAnalysis],
+        ]
+    ],
+    ) -> ComplianceReport:
+    """
+    Build a structured compliance report from scan findings
+    and optional LLM analyses.
+
+    The deterministic ComplianceFinding remains authoritative
+    for severity and confidence.
+
+    Args:
+        url: URL that was scanned.
+        scanned_at: Timestamp of the original scan.
+        ruleset_version: Version of the rule library used.
+        results: Findings paired with optional LLM analysis.
+
+    Returns:
+        A structured ComplianceReport.
+    """
+
+    report_findings = [
+        ReportFinding(
+            finding=finding,
+            analysis=analysis,
+            )
+        for finding, analysis in results
+        ]
+
+    return ComplianceReport(
+        url=url,
+        scanned_at=scanned_at,
+        ruleset_version=ruleset_version,
+        findings=report_findings,
+        )

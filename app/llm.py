@@ -187,3 +187,120 @@ def _call_provider(
                 ) from exc
 
     raise LLMRequestError(f"Unsupported LLM provider: {LLM_PROVIDER}")
+
+
+# Compliance Analysis Prompt
+SYSTEM_PROMPT = """
+You are a compliance screening assistant for a supplement
+brand's marketing content.
+
+Your job is to analyze a deterministic rule-based finding
+in the context of the surrounding webpage text.
+
+IMPORTANT:
+The rule engine has already assigned the finding's severity
+and confidence. Those values are deterministic and
+authoritative.
+
+You MUST NOT:
+- Change the assigned severity.
+- Change the assigned confidence.
+- Assign a new severity.
+- Assign a new confidence score.
+- Dismiss or remove the rule-based finding.
+- Provide legal advice.
+- State that the content is definitively compliant or
+  definitively illegal.
+
+You SHOULD:
+- Analyze what the flagged language means in context.
+- Determine how the language is being used.
+- Identify qualifying, hedging, or limiting language.
+- Explain whether surrounding context changes how the
+  finding should be interpreted.
+- Identify whether the text appears to be a direct claim,
+  qualified claim, comparative claim, incidental mention,
+  or ambiguous.
+- Provide a practical recommendation for human review.
+
+The rule-based finding must remain visible and authoritative
+in the final report. Your analysis is contextual enrichment,
+not a replacement for the deterministic rule result.
+
+The five allowed claim types are:
+
+1. direct_claim
+   The text appears to make a direct assertion about the
+   product, its effects, or its ability.
+
+2. qualified_claim
+   The statement contains meaningful qualifying, conditional,
+   cautious, or limiting language.
+
+3. comparative_claim
+   The statement compares the product or its effects to
+   another product, drug, ingredient, treatment, or outcome.
+
+4. incidental_mention
+   The flagged term appears in a contextual, informational,
+   historical, or otherwise non-claiming use.
+
+5. ambiguous
+   The available context is insufficient to confidently
+   determine how the language is being used.
+
+Be conservative. Do not invent facts that are not present
+in the supplied text.
+
+Return ONLY valid JSON matching the requested schema.
+"""
+
+
+def build_user_prompt(finding: ComplianceFinding) -> str:
+    """
+    Build the user prompt for a single compliance finding.
+
+    The rule-assigned severity and confidence are included as
+    reference information only. The LLM must not modify them.
+    """
+
+    return f"""
+Analyze the following deterministic compliance finding.
+
+RULE INFORMATION
+Rule ID: {finding.rule_id}
+Rule Name: {finding.rule_name}
+Category: {finding.category}
+Severity: {finding.severity}
+Confidence: {finding.confidence}
+Relevant Guidance: {finding.regulation}
+
+MATCHED TEXT
+{finding.matched_text}
+
+SURROUNDING CONTEXT
+{finding.context}
+
+Provide a structured analysis using exactly these JSON fields:
+
+{{
+    "claim_type": "direct_claim | qualified_claim | comparative_claim | incidental_mention | ambiguous",
+    "contextual_explanation": "Explain how the flagged language is being used in context.",
+    "hedging_detected": true or false (boolean, based on whether qualifying/limiting language is genuinely present),
+    "qualification_notes": "Describe any meaningful qualifying or limiting language. Use an empty string if none is present.",
+    "review_recommendation": "Provide a practical recommendation for human compliance review."
+}}
+
+"claim_type" must be exactly one of the five values listed
+above (direct_claim, qualified_claim, comparative_claim,
+incidental_mention, or ambiguous), written exactly as shown,
+with no additional words or explanation in that field.
+
+Remember:
+- Do not change the rule's severity.
+- Do not change the rule's confidence.
+- Do not create a new severity or confidence score.
+- Do not dismiss the deterministic finding.
+- Do not provide legal advice.
+- Base the analysis only on the supplied text.
+"""

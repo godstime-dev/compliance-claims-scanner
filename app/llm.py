@@ -18,6 +18,7 @@ remains valid and the analysis gracefully degrades to None.
 """
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple
@@ -30,6 +31,7 @@ from app.config import (
     ANTHROPIC_API_KEY,
     ANTHROPIC_MODEL,
     REQUEST_TIMEOUT,
+    LLM_MAX_CONCURRENT_REQUESTS,
     )
 from app.scanner import ComplianceFinding
 
@@ -432,3 +434,41 @@ def analyze_finding(
     except LLMRequestError as exc:
         logger.warning(f"LLM analysis failed for {finding.rule_id}: {exc}")
         return None
+
+
+# Batch Finding Analysis
+def analyze_findings(
+    findings: List[ComplianceFinding],
+    max_workers: int = LLM_MAX_CONCURRENT_REQUESTS,
+    ) -> List[Tuple[ComplianceFinding, Optional[LLMAnalysis]]]:
+    """
+    Analyze multiple compliance findings concurrently.
+
+    Each finding is analyzed independently via its own LLM call.
+    Calls are fired in parallel using a thread pool, since each
+    call is I/O-bound (waiting on network) rather than CPU-bound.
+    A failure for one finding does not affect the others.
+
+    The original ComplianceFinding objects are never modified.
+    Input order is preserved in the returned results, regardless
+    of the order in which individual calls complete.
+
+    Args:
+        findings: Deterministic findings produced by scanner.py.
+        max_workers: Maximum number of concurrent LLM calls.
+
+    Returns:
+        A list of tuples containing each original finding and
+        its optional LLM analysis.
+
+        If analysis fails for a finding, the corresponding
+        LLMAnalysis value is None.
+    """
+
+    if not findings:
+        return []
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        analyses = list(executor.map(analyze_finding, findings))
+
+    return list(zip(findings, analyses))

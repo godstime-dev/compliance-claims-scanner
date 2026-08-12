@@ -21,6 +21,7 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple
+import logging
 
 from app.config import (
     LLM_PROVIDER,
@@ -32,6 +33,7 @@ from app.config import (
     )
 from app.scanner import ComplianceFinding
 
+logger = logging.getLogger(__name__)
 
 # LLM Exceptions
 class LLMError(Exception):
@@ -391,3 +393,42 @@ def _parse_llm_response(response_text: str) -> LLMAnalysis:
         qualification_notes=data["qualification_notes"].strip(),
         review_recommendation=data["review_recommendation"].strip(),
         )
+
+
+# Single-Finding Analysis
+def analyze_finding(
+    finding: ComplianceFinding,
+    ) -> Optional[LLMAnalysis]:
+    """
+    Analyze a single deterministic compliance finding with the LLM.
+
+    The original ComplianceFinding is never modified. In particular,
+    its rule-assigned severity and confidence remain unchanged.
+
+    Args:
+        finding: Deterministic finding produced by scanner.py.
+
+    Returns:
+        LLMAnalysis when the LLM analysis succeeds.
+        None when the LLM is unavailable or the response cannot
+        be processed.
+    """
+
+    system_prompt = SYSTEM_PROMPT
+    user_prompt = build_user_prompt(finding)
+
+    try:
+        response_text = _call_provider(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            )
+
+        return _parse_llm_response(response_text)
+
+    except LLMTimeoutError as exc:
+        logger.warning(f"LLM analysis timed out for {finding.rule_id}: {exc}")
+        return None
+
+    except LLMRequestError as exc:
+        logger.warning(f"LLM analysis failed for {finding.rule_id}: {exc}")
+        return None

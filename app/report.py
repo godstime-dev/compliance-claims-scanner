@@ -523,3 +523,64 @@ def save_pdf_report(
     document.build(story)
 
     return output_path
+
+
+# Report Validation
+class ReportValidationError(Exception):
+    """
+    Raised when a ComplianceReport contains invalid data.
+    """
+
+
+def validate_report(report: ComplianceReport) -> None:
+    """
+    Validate the structural integrity of a compliance report.
+
+    This validation does not change or recalculate any finding.
+    It only verifies that the report contains the metadata and
+    finding information required for rendering.
+
+    Args:
+        report: Compliance report to validate.
+
+    Raises:
+        ReportValidationError: If the report contains invalid
+        or inconsistent data.
+    """
+
+    if not report.url.strip():
+        raise ReportValidationError(
+            "Report URL cannot be empty."
+            )
+
+    if not report.ruleset_version.strip():
+        raise ReportValidationError(
+            "Ruleset version cannot be empty."
+            )
+
+    if report.scanned_at is None:
+        raise ReportValidationError(
+            "Report scan timestamp cannot be missing."
+            )
+
+    for index, report_finding in enumerate(
+        report.findings,
+        start=1,
+        ):
+        if report_finding.finding is None:
+            raise ReportValidationError(
+                f"Finding {index} is missing its "
+                "ComplianceFinding."
+                )
+
+        finding = report_finding.finding
+
+        if not finding.rule_id.strip():
+            raise ReportValidationError(
+                f"Finding {index} has an empty rule ID."
+                )
+
+        if not finding.matched_text.strip():
+            raise ReportValidationError(
+                f"Finding {index} has empty matched text."
+                )

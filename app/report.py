@@ -584,3 +584,48 @@ def validate_report(report: ComplianceReport) -> None:
             raise ReportValidationError(
                 f"Finding {index} has empty matched text."
                 )
+
+
+# Public Report Generation
+def generate_reports(
+    report: ComplianceReport,
+    save_text: bool = True,
+    save_pdf: bool = True,
+    ) -> Tuple[Optional[Path], Optional[Path]]:
+    """
+    Validate a compliance report and optionally generate
+    text and PDF report files.
+
+    If both save_text and save_pdf are False, validation is
+    skipped entirely and (None, None) is returned, since there
+    is nothing to render.
+
+    Args:
+        report: Structured compliance report.
+        save_text: Whether to save the plain-text report.
+        save_pdf: Whether to save the PDF report.
+
+    Returns:
+        A tuple containing:
+        - Path to the saved text report, or None if disabled.
+        - Path to the saved PDF report, or None if disabled.
+
+    Raises:
+        ReportValidationError: If the report is invalid.
+    """
+
+    if not save_text and not save_pdf:
+        return None, None
+
+    validate_report(report)
+
+    text_path = None
+    pdf_path = None
+
+    if save_text:
+        text_path = save_text_report(report)
+
+    if save_pdf:
+        pdf_path = save_pdf_report(report)
+
+    return text_path, pdf_path

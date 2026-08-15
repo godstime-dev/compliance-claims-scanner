@@ -38,3 +38,33 @@ def initialize_session_state() -> None:
 
     if "pdf_report_path" not in st.session_state:
         st.session_state.pdf_report_path = None
+
+
+# URL Input & Scan Controls
+def render_scan_controls() -> tuple[str, bool]:
+    """
+    Render the URL input and scan button.
+
+    Returns:
+        A tuple containing the submitted URL and whether
+        the scan button was clicked.
+    """
+
+    st.title("Compliance Claims Scanner")
+
+    st.write(
+        "Scan a supplement brand's webpage for potentially "
+        "risky marketing and compliance claims."
+        )
+
+    url = st.text_input(
+        "Website URL",
+        placeholder="https://example.com",
+        )
+
+    scan_clicked = st.button(
+        "Scan Page",
+        type="primary",
+        )
+
+    return url.strip(), scan_clicked

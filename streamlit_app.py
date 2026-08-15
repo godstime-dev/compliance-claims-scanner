@@ -381,3 +381,83 @@ def render_compliance_report(report: ComplianceReport) -> None:
 
             st.markdown("**AI Review Recommendation:**")
             st.write(analysis.review_recommendation)
+
+
+# Report Metadata & Downloads
+def render_report_downloads() -> None:
+    """
+    Display report metadata and download controls for a
+    successfully generated compliance report.
+
+    Download controls are shown only when the corresponding
+    report file exists in Streamlit session state and can
+    still be read from disk.
+    """
+
+    report = st.session_state.compliance_report
+
+    if report is None:
+        return
+
+    st.divider()
+
+    st.subheader("Report")
+
+    st.write(f"**Scanned URL:** {report.url}")
+
+    st.write(
+        f"**Scanned At:** "
+        f"{report.scanned_at.strftime('%B %d, %Y at %I:%M %p UTC')}"
+        )
+
+    st.write(
+        f"**Ruleset Version:** "
+        f"{report.ruleset_version}"
+        )
+
+    text_report_path = st.session_state.text_report_path
+    pdf_report_path = st.session_state.pdf_report_path
+
+    if text_report_path is None and pdf_report_path is None:
+        st.info(
+            "No report files are currently available for download."
+            )
+        return
+
+    col1, col2 = st.columns(2)
+
+    if text_report_path is not None:
+        try:
+            with open(text_report_path, "rb") as text_file:
+                text_data = text_file.read()
+        except FileNotFoundError:
+            text_data = None
+
+        with col1:
+            if text_data is not None:
+                st.download_button(
+                    label="Download Text Report",
+                    data=text_data,
+                    file_name=text_report_path.name,
+                    mime="text/plain",
+                    )
+            else:
+                st.warning("Text report file is no longer available.")
+
+    if pdf_report_path is not None:
+        try:
+            with open(pdf_report_path, "rb") as pdf_file:
+                pdf_data = pdf_file.read()
+        except FileNotFoundError:
+            pdf_data = None
+
+        with col2:
+            if pdf_data is not None:
+                st.download_button(
+                    label="Download PDF Report",
+                    data=pdf_data,
+                    file_name=pdf_report_path.name,
+                    mime="application/pdf",
+                    )
+            else:
+                st.warning("PDF report file is no longer available.")

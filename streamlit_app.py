@@ -461,3 +461,43 @@ def render_report_downloads() -> None:
                     )
             else:
                 st.warning("PDF report file is no longer available.")
+
+
+# Main Application
+def main() -> None:
+    """
+    Run the Streamlit compliance scanner application.
+
+    The UI renders the scan controls first, then displays
+    either the completed compliance report or the raw
+    deterministic scan results when report generation fails.
+    If no scan has been run yet, a placeholder message is shown.
+    """
+
+    initialize_session_state()
+
+    url, scan_clicked = render_scan_controls()
+
+    if scan_clicked:
+        run_scan(url)
+
+    compliance_report = st.session_state.compliance_report
+    scan_result = st.session_state.scan_result
+
+    if compliance_report is not None:
+        render_compliance_report(compliance_report)
+        render_report_downloads()
+
+    elif scan_result is not None:
+        render_scan_results(scan_result)
+
+    else:
+        st.info(
+            "Enter a supplement brand's URL above and click "
+            "\"Scan Page\" to check for potentially risky "
+            "marketing and compliance claims."
+            )
+
+
+if __name__ == "__main__":
+    main()

@@ -195,3 +195,91 @@ def run_scan(url: str) -> None:
     except Exception as exc:
         st.error("An unexpected error occurred while running the scan.")
         st.exception(exc)
+
+
+# Scan Results Display
+def render_scan_results(scan_result) -> None:
+    """
+    Display deterministic rule-based scan results.
+
+    The rule-based scanner remains the authoritative source
+    for finding count, severity, confidence, and rule metadata.
+    """
+
+    st.subheader("Scan Results")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Total Findings",
+            scan_result.total_findings,
+            )
+
+    with col2:
+        st.metric(
+            "High Severity",
+            scan_result.high_severity_count,
+            )
+
+    with col3:
+        st.metric(
+            "Medium Severity",
+            scan_result.medium_severity_count,
+            )
+
+    with col4:
+        st.metric(
+            "Low Severity",
+            scan_result.low_severity_count,
+            )
+
+    if not scan_result.findings:
+        st.success(
+            "No compliance findings were identified."
+            )
+        return
+
+    st.divider()
+
+    for index, finding in enumerate(
+        scan_result.findings,
+        start=1,
+        ):
+        with st.expander(
+            f"Finding {index}: {finding.rule_name}"
+            ):
+            st.markdown("### Rule-Based Finding")
+
+            st.write(f"**Rule:** {finding.rule_name}")
+
+            st.write(f"**Rule ID:** {finding.rule_id}")
+
+            st.write(f"**Category:** {finding.category}")
+
+            st.write(f"**Severity:** {finding.severity.upper()}")
+
+            st.write(f"**Confidence:** {finding.confidence.upper()}")
+
+            st.markdown("**Why This Was Flagged:**")
+
+            st.write(finding.explanation)
+
+            st.markdown("**Matched Text:**")
+            
+            st.code(
+                finding.matched_text,
+                language=None,
+                )
+
+            st.markdown("**Context:**")
+
+            st.write(finding.context)
+
+            st.markdown("**Relevant Guidance:**")
+
+            st.write(finding.regulation)
+
+            st.markdown("**Recommendation:**")
+
+            st.write(finding.recommendation)

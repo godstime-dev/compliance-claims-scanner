@@ -25,6 +25,7 @@ from app.scanner import scan
 from app.llm import analyze_findings
 
 from app.report import (
+    ComplianceReport,
     ReportValidationError,
     build_report,
     generate_reports,
@@ -266,7 +267,7 @@ def render_scan_results(scan_result) -> None:
             st.write(finding.explanation)
 
             st.markdown("**Matched Text:**")
-            
+
             st.code(
                 finding.matched_text,
                 language=None,
@@ -283,3 +284,100 @@ def render_scan_results(scan_result) -> None:
             st.markdown("**Recommendation:**")
 
             st.write(finding.recommendation)
+
+
+# Combined Compliance Report Display
+def render_compliance_report(report: ComplianceReport) -> None:
+    """
+    Display the full compliance report: deterministic rule-based
+    findings combined with optional LLM contextual analysis.
+
+    Each finding's rule data and AI analysis are shown together,
+    in one expander per finding, matching the structure of the
+    text and PDF reports. The rule-based severity and confidence
+    remain authoritative; AI analysis is contextual enrichment
+    only and is never used to override them.
+
+    Args:
+        report: Structured compliance report.
+    """
+
+    st.subheader("Compliance Report")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Total Findings", report.total_findings)
+
+    with col2:
+        st.metric("High Severity", report.high_severity_count)
+
+    with col3:
+        st.metric("Medium Severity", report.medium_severity_count)
+
+    with col4:
+        st.metric("Low Severity", report.low_severity_count)
+
+    if not report.findings:
+        st.success("No compliance findings were identified.")
+        return
+
+    st.divider()
+
+    for index, report_finding in enumerate(report.findings, start=1):
+        finding = report_finding.finding
+        analysis = report_finding.analysis
+
+        with st.expander(f"Finding {index}: {finding.rule_name}"):
+            st.markdown("### Rule-Based Finding")
+
+            st.write(f"**Rule:** {finding.rule_name}")
+            st.write(f"**Rule ID:** {finding.rule_id}")
+            st.write(f"**Category:** {finding.category}")
+            st.write(f"**Severity:** {finding.severity.upper()}")
+            st.write(f"**Confidence:** {finding.confidence.upper()}")
+
+            st.markdown("**Why This Was Flagged:**")
+            st.write(finding.explanation)
+
+            st.markdown("**Matched Text:**")
+            st.code(finding.matched_text, language=None)
+
+            st.markdown("**Context:**")
+            st.write(finding.context)
+
+            st.markdown("**Relevant Guidance:**")
+            st.write(finding.regulation)
+
+            st.markdown("**Rule Recommendation:**")
+            st.write(finding.recommendation)
+
+            st.divider()
+
+            st.markdown("### AI Contextual Analysis")
+
+            st.caption(
+                "This analysis provides contextual judgment only. "
+                "Rule-based severity and confidence remain authoritative."
+                )
+
+            if analysis is None:
+                st.warning("AI analysis unavailable for this finding.")
+                continue
+
+            st.write(f"**Claim Type:** {analysis.claim_type.value}")
+
+            st.write(
+                "**Hedging Detected:** "
+                f"{'Yes' if analysis.hedging_detected else 'No'}"
+                )
+
+            st.markdown("**Contextual Explanation:**")
+            st.write(analysis.contextual_explanation)
+
+            if analysis.qualification_notes:
+                st.markdown("**Qualification Notes:**")
+                st.write(analysis.qualification_notes)
+
+            st.markdown("**AI Review Recommendation:**")
+            st.write(analysis.review_recommendation)

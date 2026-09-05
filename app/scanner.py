@@ -16,21 +16,26 @@ Its responsibility is limited to rule-based claim detection.
 
 import re
 from dataclasses import dataclass
-from typing import List
 from datetime import datetime, timezone
+from typing import List
 
 from app.rules import (
     RULES,
     RULESET_VERSION,
     ComplianceRule,
+    Severity,
+    Confidence,
     )
 
 
+# ==========================================================
 # Scanner Configuration
-"""
-Number of characters to include on each side of a matched 
-claim when generating contextual text for a finding.
-"""
+# ==========================================================
+
+# Number of characters to include on EACH SIDE of a matched
+# claim when generating contextual text for a finding. Context
+# extraction never crosses a newline boundary, regardless of
+# this value — see extract_context().
 CONTEXT_WINDOW = 120
 
 
@@ -111,7 +116,9 @@ class ScanResult:
         return len(self.findings) > 0
 
 
+# ==========================================================
 # Regex Compilation
+# ==========================================================
 def compile_rules(
     rules: List[ComplianceRule],
     ) -> dict[str, List[re.Pattern]]:
@@ -125,24 +132,34 @@ def compile_rules(
         A dictionary mapping each rule ID to its compiled
         regular expression patterns.
     """
-
     compiled_rules = {}
-
     for rule in rules:
         compiled_rules[rule.id] = [
-            re.compile(
-                pattern,
-                re.IGNORECASE,
-                )
+            re.compile(pattern, re.IGNORECASE)
             for pattern in rule.patterns
             ]
-
     return compiled_rules
+
 
 COMPILED_RULES = compile_rules(RULES)
 
 
+# ==========================================================
 # Context Extraction
+# ==========================================================
+
+# If a sentence-bounded snippet comes out shorter than this,
+# it's likely not informative on its own (e.g. "Burn Fat." from
+# a run-on tag list) — keep expanding to neighboring sentences
+# within the same element until this length is reached.
+MIN_CONTEXT_LENGTH = 40
+
+# Hard ceiling on expansion, in case an element's text has no
+# punctuation at all (a long unbroken run of words) — falls
+# back to a plain character window with visible "..." markers.
+MAX_CONTEXT_LENGTH = 400
+
+
 def extract_context(
     text: str,
     start: int,
@@ -152,29 +169,123 @@ def extract_context(
     """
     Extract surrounding text around a regex match.
 
-    The returned context is limited to a configurable number
-    of characters before and after the matched text.
+    Context is bounded by the surrounding HTML element (never
+    crosses a newline, since text on the other side of one came
+    from a different, unrelated element).
+
+    Within that boundary, the context expands outward by whole
+    sentences (split on ., !, ?) starting from the sentence
+    containing the match, continuing until the snippet reaches
+    MIN_CONTEXT_LENGTH or the element boundary is reached. This
+    avoids returning a fragment too short to be meaningful (e.g.
+    a single short tag in a run-on list) while never crossing
+    into unrelated sentences beyond what's needed.
+
+    If the element has no sentence-ending punctuation at all
+    (or the sentence-bounded result exceeds MAX_CONTEXT_LENGTH),
+    falls back to a plain character window with visible "..."
+    markers so truncation is never silent.
 
     Args:
         text: Full cleaned webpage text.
         start: Start position of the regex match.
         end: End position of the regex match.
-        window: Number of surrounding characters to include.
+        window: Fallback window size, used only when no usable
+            sentence boundaries are found.
 
     Returns:
-        A trimmed context string containing the matched text
-        and surrounding webpage content.
+        A trimmed context string from the same element only.
     """
 
-    context_start = max(0, start - window)
-    context_end = min(len(text), end + window)
+    prev_newline = text.rfind("\n", 0, start)
+    line_start = 0 if prev_newline == -1 else prev_newline + 1
 
-    context = text[context_start:context_end]
+    next_newline = text.find("\n", end)
+    line_end = len(text) if next_newline == -1 else next_newline
 
-    return " ".join(context.split())
+    line = text[line_start:line_end]
+    match_start_rel = start - line_start
+    match_end_rel = end - line_start
+
+    sentence_end_positions = [
+        m.end() for m in re.finditer(r"[.!?]", line)
+        ]
+
+    spans = []
+    prev = 0
+    for pos in sentence_end_positions:
+        spans.append((prev, pos))
+        prev = pos
+    if prev < len(line):
+        spans.append((prev, len(line)))
+
+    span_idx = None
+    for i, (s, e) in enumerate(spans):
+        if s <= match_start_rel < e or s < match_end_rel <= e:
+            span_idx = i
+            break
+
+    if span_idx is None:
+        # No usable sentence structure at all — fall back to a
+        # plain character window, marked with "..." if trimmed.
+        window_start = max(line_start, start - window)
+        window_end = min(line_end, end + window)
+
+        context = text[window_start:window_end]
+        context = " ".join(context.split())
+
+        if window_start > line_start:
+            context = "... " + context
+        if window_end < line_end:
+            context = context + " ..."
+
+        return context
+
+    lo, hi = span_idx, span_idx
+
+    def _span_text() -> str:
+        return line[spans[lo][0]:spans[hi][1]]
+
+    while (
+        len(_span_text().strip()) < MIN_CONTEXT_LENGTH
+        and (lo > 0 or hi < len(spans) - 1)
+        ):
+        expanded = False
+
+        if hi < len(spans) - 1:
+            hi += 1
+            expanded = True
+
+        if (
+            len(_span_text().strip()) < MIN_CONTEXT_LENGTH
+            and lo > 0
+            ):
+            lo -= 1
+            expanded = True
+
+        if not expanded:
+            break
+
+    context = " ".join(_span_text().split())
+
+    if len(context) > MAX_CONTEXT_LENGTH:
+        window_start = max(line_start, start - window)
+        window_end = min(line_end, end + window)
+
+        context = text[window_start:window_end]
+        context = " ".join(context.split())
+
+        if window_start > line_start:
+            context = "... " + context
+        if window_end < line_end:
+            context = context + " ..."
+
+    return context
 
 
+# ==========================================================
 # Rule Matching
+# ==========================================================
 def scan_text(
     text: str,
     rules: List[ComplianceRule] = RULES,
@@ -228,7 +339,9 @@ def scan_text(
     return findings
 
 
+# ==========================================================
 # Scan Result Builder
+# ==========================================================
 def build_scan_result(
     url: str,
     text: str,
@@ -255,7 +368,9 @@ def build_scan_result(
         )
 
 
+# ==========================================================
 # Public Scanner Interface
+# ==========================================================
 def scan(
     url: str,
     text: str,
@@ -275,14 +390,5 @@ def scan(
         A complete ScanResult containing all findings
         and scan-level summary information.
     """
-
-    findings = scan_text(
-        text=text,
-        rules=rules,
-        )
-
-    return build_scan_result(
-        url=url,
-        text=text,
-        findings=findings,
-        )
+    findings = scan_text(text=text, rules=rules)
+    return build_scan_result(url=url, text=text, findings=findings)

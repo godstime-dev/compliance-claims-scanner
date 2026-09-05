@@ -324,11 +324,15 @@ def render_compliance_report(report: ComplianceReport) -> None:
 
     st.divider()
 
-    for index, report_finding in enumerate(report.findings, start=1):
-        finding = report_finding.finding
-        analysis = report_finding.analysis
+    for index, grouped in enumerate(report.grouped_findings, start=1):
+        finding = grouped.finding
+        analysis = grouped.analysis
 
-        with st.expander(f"Finding {index}: {finding.rule_name}"):
+        with st.expander(
+            f"Finding {index}: {finding.rule_name} "
+            f"({grouped.occurrence_count} occurrence"
+            f"{'s' if grouped.occurrence_count != 1 else ''})"
+            ):
             st.markdown("### Rule-Based Finding")
 
             st.write(f"**Rule:** {finding.rule_name}")
@@ -343,8 +347,23 @@ def render_compliance_report(report: ComplianceReport) -> None:
             st.markdown("**Matched Text:**")
             st.code(finding.matched_text, language=None)
 
+            st.markdown(f"**Occurrences:** {grouped.occurrence_count}")
+
             st.markdown("**Context:**")
-            st.write(finding.context)
+            for i, (ctx, count) in enumerate(grouped.distinct_contexts, start=1):
+                label = "Inquiry" if ctx.rstrip().endswith("?") else "Claim"
+                markdown_text = (
+                    f"**{i}. {label}:**\n\n"
+                    f"{ctx}"
+                    )
+                if count > 1:
+                    extra = count - 1
+                    markdown_text += (
+                        f"\n\n*:lightgrey[(also appears {extra} more "
+                        f"time{'s' if extra != 1 else ''} with no "
+                        "additional context)]*"
+                        )
+                st.write(markdown_text)
 
             st.markdown("**Relevant Guidance:**")
             st.write(finding.regulation)

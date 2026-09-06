@@ -1,0 +1,26 @@
+"""
+Website crawler for the compliance claims scanner.
+
+Discover a set of crawl-eligible pages starting from one URL,
+respecting robots.txt and rate limits, using sitemap-based
+discovery as the primary mechanism.
+
+This module does NOT:
+- Extract visible text (cleaner.py handles that)
+- Run compliance rule (scanner.py handles that)
+- Call an LLM
+- Generate reports
+
+Its responsibility is limited to discovering which URLs on a
+site are safe and worthwhile to crawl(browse).
+"""
+
+import re
+
+from dataclasses import dataclass
+from urllib.parse import(
+    parse_qsl,
+    urlencode,
+    urlsplit,
+    urlunsplit,
+    )

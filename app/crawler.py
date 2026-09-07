@@ -24,3 +24,21 @@ from urllib.parse import(
     urlsplit,
     urlunsplit,
     )
+
+class CrawlerError(Exception):
+    """Base exception for crawler-related failures."""
+
+
+"""
+Only standard http and https links are supported for crawling. 
+Anything else (mailto:, tel:, javascript:, ftp:, data:, etc.)
+is rejected before normalization even attempts to process it.
+"""
+SUPPORTED_SCHEMES = ("http", "https")
+
+
+# Default web ports to strip out during link standardization.
+DEFAULT_PORTS = {
+    "http": "80",
+    "https": "443"
+    }

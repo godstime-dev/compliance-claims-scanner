@@ -72,3 +72,11 @@ class NormalizedUrl:
     considered the same page and will not be scanned twice.
     """
     value: str
+
+
+def _is_supported_scheme(scheme: str) -> bool:
+    """
+    Check whether a URL scheme is one the crawler
+    is willing to fetch (http or https only).
+    """
+    return scheme.lower() in SUPPORTED_SCHEMES

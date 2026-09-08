@@ -61,3 +61,14 @@ TRACKING_PREFIXES = ("utm_",)
 # Safe letters, numbers, and basic symbols that can be decoded without breaking a URL.
 # Structural symbols are skipped to prevent creating broken links.
 _UNRESERVED_PATTERN = re.compile(r"[A-za-z0-9\-._⁓]")
+
+
+@dataclass(frozen=True)
+class NormalizedUrl:
+    """
+    A fixed template for a perfectly cleaned web address.
+
+    Two URLs normalizing into the exact same value are
+    considered the same page and will not be scanned twice.
+    """
+    value: str

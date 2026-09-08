@@ -57,3 +57,7 @@ TRACKING_PARAMETERS = frozenset({
     })
 
 TRACKING_PREFIXES = ("utm_",)
+
+# Safe letters, numbers, and basic symbols that can be decoded without breaking a URL.
+# Structural symbols are skipped to prevent creating broken links.
+_UNRESERVED_PATTERN = re.compile(r"[A-za-z0-9\-._⁓]")

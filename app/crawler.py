@@ -42,3 +42,18 @@ DEFAULT_PORTS = {
     "http": "80",
     "https": "443"
     }
+
+"""
+Query parameters known to be tracking noise/marketing clutter
+that do not change the actual content of the page. Safe to remove
+under that "syntactic, not semantic" normalization principle.
+"""
+TRACKING_PARAMETERS = frozenset({
+    "fbclid",
+    "gclid,"
+    "msclkid",
+    "mc_cid",
+    "mc_eid",
+    })
+
+

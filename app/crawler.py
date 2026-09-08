@@ -80,3 +80,15 @@ def _is_supported_scheme(scheme: str) -> bool:
     is willing to fetch (http or https only).
     """
     return scheme.lower() in SUPPORTED_SCHEMES
+
+
+def _is_tracking_parameter(name: str) -> bool:
+    """
+    Identify if a query parameter is a marketing tracker or ad-attribution tag.
+    """
+    normalized_name = name.lower()
+
+    if normalized_name in TRACKING_PARAMETERS:
+        return True
+
+    return normalized_name.startswith(TRACKING_PREFIXES)

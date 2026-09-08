@@ -56,4 +56,4 @@ TRACKING_PARAMETERS = frozenset({
     "mc_eid",
     })
 
-
+TRACKING_PREFIXES = ("utm_",)

@@ -50,7 +50,7 @@ under that "syntactic, not semantic" normalization principle.
 """
 TRACKING_PARAMETERS = frozenset({
     "fbclid",
-    "gclid,"
+    "gclid",
     "msclkid",
     "mc_cid",
     "mc_eid",

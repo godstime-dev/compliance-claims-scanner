@@ -92,3 +92,36 @@ def _is_tracking_parameter(name: str) -> bool:
         return True
 
     return normalized_name.startswith(TRACKING_PREFIXES)
+
+
+def _normalize_percent_encoding(component: str) -> str:
+    """
+    Normalize percent-encoding within a URL path or query component.
+
+    Unreserved ASCII characters (letters, digits, '-', '.', '_', '~')
+    are safely decoded back to their literal form.
+
+    NOTE: Multi-byte UTF-8 sequences (e.g., non-ASCII characters like '%c3%a9') 
+    will trigger a UnicodeDecodeError inside the single-triplet regex loop. 
+    The fallback safely leaves them encoded and standardizes them to uppercase hex.
+    """
+    def _decode_if_unreserved(match: "re.Match") -> str:
+        hex_digits = match.group(1)
+
+        try:
+            decode_char = bytes.fromhex(hex_digits).decode(
+                "utf-8", errors="strict"
+                )
+        except (ValueError, UnicodeDecodeError):
+            return f"%{hex_digits.upper()}"
+
+        if _UNRESERVED_PATTERN.fullmatch(decode_char):
+            return decode_char
+
+        return f"%{hex_digits.upper()}"
+
+    return re.sub(
+        r"%([0-9A-Fa-f]{2})",
+        _decode_if_unreserved,
+        component,
+        )

@@ -125,3 +125,30 @@ def _normalize_percent_encoding(component: str) -> str:
         _decode_if_unreserved,
         component,
         )
+
+def _normalize_query(query: str) -> str:
+    """
+    Remove known tracking parameters, preserve all other
+    parameters, and sort any other parameter for a
+    consistent canonical ordering.
+
+    Query encoding is handled entirely by parse_qsl/urlencode
+    here, rather than pre-processing with
+    _normalize_percent_encoding(), since running both would
+    double-process the same encoded values in potentially
+    conflicting ways.
+    """
+    if not query:
+        return ""
+
+    pairs = parse_qsl(query, keep_blank_values=True)
+
+    filtered_pairs = [
+        (key, value)
+        for key, value in pairs
+        if not _is_tracking_parameter(key)
+        ]
+
+    filtered_pairs.sort(key=lambda pair: (pair[0], pair[1]))
+
+    return urlencode(filtered_pairs)

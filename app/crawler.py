@@ -223,3 +223,21 @@ def normalize_url(raw_url: str) -> NormalizedURL:
     canonical = urlunsplit((scheme, netloc, path, query, ""))
 
     return NormalizedURL(value=canonical)
+
+
+def _is_internal_url(candidate_url: str, base_url: str) -> bool:
+    """
+    Verify if a candidate URL shares the exact same domain as the base URL.
+
+    This operates as a deterministic local check without executing network requests.
+    """
+    try:
+        candidate = urlsplit(candidate_url)
+        base = urlsplit(base_url)
+    except ValueError:
+        return False
+
+    if not candidate.hostname or not base.hostname:
+        return False
+
+    return candidate.hostname.lower() == base.hostname.lower()

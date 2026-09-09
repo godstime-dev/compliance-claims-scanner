@@ -64,7 +64,7 @@ _UNRESERVED_PATTERN = re.compile(r"[A-za-z0-9\-._⁓]")
 
 
 @dataclass(frozen=True)
-class NormalizedUrl:
+class NormalizedURL:
     """
     A fixed template for a perfectly cleaned web address.
 
@@ -152,3 +152,74 @@ def _normalize_query(query: str) -> str:
     filtered_pairs.sort(key=lambda pair: (pair[0], pair[1]))
 
     return urlencode(filtered_pairs)
+
+
+def normalize_url(raw_url: str) -> NormalizedURL:
+    """
+    Produce a canonical representation of a URL.
+
+    Normalization removes syntactic differences that are safely
+    known not to affect the resource (fragment, default port,
+    hostname casing, tracking parameters, parameter ordering,
+    percent-encoding style), but preserves differences whose
+    semantic meaning cannot be determined reliably without
+    fetching the URL (path casing, trailing slash, www vs
+    non-www, http vs https, and any non-tracking query
+    parameter).
+
+    This function only produces a canonical URL string — it does
+    not decide whether the URL is internal, robots-allowed, or
+    otherwise worth crawling. Those are separate, later checks.
+
+    Args:
+        raw_url: A URL as discovered from a sitemap or page.
+
+    Returns:
+        A NormalizedURL wrapping the canonical string form.
+
+    Raises:
+        CrawlerError: If the URL cannot be parsed, uses an
+            unsupported scheme, has no hostname, or has a
+            malformed port.
+    """
+
+    if not raw_url or not raw_url.strip():
+        raise CrawlerError("URL cannot be empty.")
+
+    try:
+        parts = urlsplit(raw_url.strip())
+    except ValueError as exc:
+        raise CrawlerError(f"Could not parse URL: {raw_url}") from exc
+
+    if not _is_supported_scheme(parts.scheme):
+        raise CrawlerError(
+            f"Unsupported URL scheme "
+            f"'{parts.scheme or '(none)'}': {raw_url}"
+            )
+
+    if not parts.hostname:
+        raise CrawlerError(f"URL has no hostname: {raw_url}")
+
+    try:
+        port = parts.port
+    except ValueError as exc:
+        raise CrawlerError(f"Invalid port in URL: {raw_url}") from exc
+
+    scheme = parts.scheme.lower()
+    hostname = parts.hostname.lower()
+
+    if port is not None and str(port) == DEFAULT_PORTS.get(scheme):
+        port = None
+
+    netloc = hostname if port is None else f"{hostname}:{port}"
+
+    path = parts.path or "/"
+    path = _normalize_percent_encoding(path)
+
+    query = _normalize_query(parts.query)
+
+    # Fragment is intentionally dropped, it never reaches the
+    # server and cannot affect which resource is returned.
+    canonical = urlunsplit((scheme, netloc, path, query, ""))
+
+    return NormalizedURL(value=canonical)

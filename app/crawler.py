@@ -241,3 +241,37 @@ def _is_internal_url(candidate_url: str, base_url: str) -> bool:
         return False
 
     return candidate.hostname.lower() == base.hostname.lower()
+
+
+UNSAFE_DEFAULT_PATHS = (
+    "/admin",
+    "/cart",
+    "/checkout",
+    "/account",
+    "/login",
+    )
+
+
+def _is_safe_default_path(url: str) -> bool:
+    """
+    Verify if a URL path avoids restricted administrative or
+    interactive directories.
+
+    This local check runs deterministically without initiating
+    any network activity and does not check robots.txt.
+    """
+    try:
+        path = urlsplit(url).path
+    except ValueError:
+        return False
+
+    normalized_path = path.rstrip("/") or "/"
+
+    for unsafe_path in UNSAFE_DEFAULT_PATHS:
+        if (
+            normalized_path == unsafe_path
+            or normalized_path.startswith(unsafe_path + "/")
+            ):
+            return False
+
+    return True

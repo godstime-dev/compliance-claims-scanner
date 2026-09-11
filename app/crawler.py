@@ -26,7 +26,9 @@ from urllib.parse import(
     )
 
 class CrawlerError(Exception):
-    """Base exception for crawler-related failures."""
+    """
+    Base exception for crawler-related failures.
+    """
 
 
 """
@@ -275,3 +277,29 @@ def _is_safe_default_path(url: str) -> bool:
             return False
 
     return True
+
+
+class RobotsError(CrawlerError):
+    """
+    Raised when crawling must halt because access to robots.txt is
+    explicitly disallowed, or because the file could not be retrieved
+    due to a 5xx server error or persistent network failure.
+    
+    Per RFC 9309, an unreachable robots.txt must be treated as
+    a full disallow, not an invitation to proceed.
+    """
+
+
+@dataclass(frozen=True)
+class RobotsPolicy:
+    """
+    Represents the resolved robots.txt policy for a domain.
+
+    Attributes:
+        parser: A populated urllib.robotparser.RobotFileParser instance if
+            robots.txt was retrieved successfully (200 OK), or an empty
+            parser if the server returned a 4xx response (e.g., 404 Not Found).
+        status: Diagnostic string tracking the exact resolution result.
+    """
+    parser: "RobotFileParser"
+    status: str

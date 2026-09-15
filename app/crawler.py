@@ -16,6 +16,8 @@ site are safe and worthwhile to crawl(browse).
 """
 
 import re
+import time
+import requests
 
 from dataclasses import dataclass
 from urllib.parse import(
@@ -24,6 +26,9 @@ from urllib.parse import(
     urlsplit,
     urlunsplit,
     )
+
+from requests.exceptions import RequestException
+from urllib.robotparser import RobotFileParser
 
 class CrawlerError(Exception):
     """
@@ -284,7 +289,7 @@ class RobotsError(CrawlerError):
     Raised when crawling must halt because access to robots.txt is
     explicitly disallowed, or because the file could not be retrieved
     due to a 5xx server error or persistent network failure.
-    
+
     Per RFC 9309, an unreachable robots.txt must be treated as
     a full disallow, not an invitation to proceed.
     """
@@ -303,3 +308,137 @@ class RobotsPolicy:
     """
     parser: "RobotFileParser"
     status: str
+
+
+# HTTP status codes indicating robots.txt is "unavailable" per RFC 9309.
+# When unavailable, the crawler may proceed assuming no restrictions exist.
+# Status 429 is deliberately excluded: it signals rate limiting ("back off"),
+# not an absence of crawling rules.
+_UNAVAILABLE_STATUS_RANGE = range(400, 500)
+_RATE_LIMITED_STATUS = 429
+
+# Maximum attempts before treating a 5xx error or network failure as 
+# "unreachable" (requiring a full disallow per RFC 9309) rather than retrying.
+ROBOTS_FETCH_MAX_RETRIES = 3
+ROBOTS_FETCH_RETRY_DELAY_SECONDS = 1.0
+ROBOTS_FETCH_TIMEOUT_SECONDS = 10
+
+def _build_robots_url(base_url: str) -> str:
+    """
+    Constructs the absolute robots.txt URL for a site, preserving the original
+    scheme, hostname, and explicit port numbers from the base URL.
+    """
+    parts = urlsplit(base_url)
+    return urlunsplit((parts.scheme, parts.netloc, "/robots.txt", "", ""))
+
+
+def fetch_robots_policy(
+    base_url: str,
+    user_agent: str,
+    ) -> RobotsPolicy:
+    """
+    Fetches and resolves the robots.txt policy for a target domain per RFC 9309
+
+    Resolution Strategy:
+    - 200 OK: Parses rules normally. If the rules explicitly disallow "/" for
+        the configured user-agent, a RobotsError is raised.
+    - 4xx (except 429): Classified as "unavailable". RFC 9309 allows crawling
+        by default when policy files are missing or inaccessible.
+    - 429: Retried with exponential backoff; does not mark the policy as unavailable.
+    - 5xx or Network Failure: Retried up to ROBOTS_FETCH_MAX_RETRIES times. Persistent
+        failures are treated as "unreachable" and raise a RobotsError (fail-closed).
+
+    Note:
+        Although RFC 9309 distinguishes between an explicit "Disallow: /" rule 
+        and an unreachable robots.txt file, this crawler deliberately enforces 
+        a fail-closed policy: crawling halts whenever access is explicitly 
+        denied or policy status remains ambiguous.
+
+    Args:
+        base_url: Base site URL containing scheme and hostname.
+        user_agent: Crawler user-agent string used for HTTP requests and rule parsing.
+
+    Returns:
+        A RobotsPolicy instance containing the resolved RobotFileParser rules.
+
+    Raises:
+        RobotsError: If crawling is explicitly disallowed or if robots.txt 
+            cannot be reliably retrieved after retries.
+    """
+
+    robots_url = _build_robots_url(base_url)
+    headers = {
+        "User-Agent": user_agent,
+        "Accept": "text/plain",
+        }
+
+    last_error_description = "unknown error"
+
+    for attempt in range(1, ROBOTS_FETCH_MAX_RETRIES + 1):
+        try:
+            response = requests.get(
+                robots_url,
+                headers=headers,
+                timeout=ROBOTS_FETCH_TIMEOUT_SECONDS,
+                )
+        except RequestException as exc:
+            last_error_description = f"network error: {exc}"
+
+            if attempt < ROBOTS_FETCH_MAX_RETRIES:
+                backoff_delay = (
+                    ROBOTS_FETCH_RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+                    )
+                time.sleep(backoff_delay)
+
+            continue
+
+        status = response.status_code
+
+        if status == _RATE_LIMITED_STATUS:
+            last_error_description = "rate limited (429)"
+
+            if attempt < ROBOTS_FETCH_MAX_RETRIES:
+                backoff_delay = (
+                    ROBOTS_FETCH_RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+                    )
+                time.sleep(backoff_delay)
+
+            continue
+
+        if status in _UNAVAILABLE_STATUS_RANGE:
+            parser = RobotFileParser()
+            parser.parse([])
+            return RobotsPolicy(
+                parser=parser,
+                status=f"unavailable_{status}",
+                )
+
+        if status == 200:
+            parser = RobotFileParser()
+            parser.parse(response.text.splitlines())
+
+            if not parser.can_fetch(user_agent, "/"):
+                raise RobotsError(
+                    f"{base_url} explicitly disallows crawling "
+                    f"for user-agent '{user_agent}'."
+                    )
+
+            is_empty = not response.text.strip()
+            status_label = "empty_rules_allowed" if is_empty else "loaded"
+
+            return RobotsPolicy(parser=parser, status=status_label)
+
+        last_error_description = f"HTTP {status}"
+
+        if attempt < ROBOTS_FETCH_MAX_RETRIES:
+            backoff_delay = (
+                ROBOTS_FETCH_RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+                )
+            time.sleep(backoff_delay)
+
+    raise RobotsError(
+        f"Could not reliably retrieve robots.txt for {base_url} "
+        f"after {ROBOTS_FETCH_MAX_RETRIES} attempts "
+        f"({last_error_description}). Per RFC 9309, an "
+        f"unreachable robots.txt must be treated as full disallow."
+        )

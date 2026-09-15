@@ -398,26 +398,14 @@ def fetch_robots_policy(
                 )
         except RequestException as exc:
             last_error_description = f"network error: {exc}"
-
-            if attempt < ROBOTS_FETCH_MAX_RETRIES:
-                backoff_delay = (
-                    ROBOTS_FETCH_RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
-                    )
-                time.sleep(backoff_delay)
-
+            _sleep_if_retries_remain(attempt)
             continue
-
+        
         status = response.status_code
 
         if status == _RATE_LIMITED_STATUS:
             last_error_description = "rate limited (429)"
-
-            if attempt < ROBOTS_FETCH_MAX_RETRIES:
-                backoff_delay = (
-                    ROBOTS_FETCH_RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
-                    )
-                time.sleep(backoff_delay)
-
+            _sleep_if_retries_remain(attempt)
             continue
 
         if status in _UNAVAILABLE_STATUS_RANGE:
@@ -444,12 +432,7 @@ def fetch_robots_policy(
             return RobotsPolicy(parser=parser, status=status_label)
 
         last_error_description = f"HTTP {status}"
-
-        if attempt < ROBOTS_FETCH_MAX_RETRIES:
-            backoff_delay = (
-                ROBOTS_FETCH_RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
-                )
-            time.sleep(backoff_delay)
+        _sleep_if_retries_remain(attempt)
 
     raise RobotsError(
         f"Could not reliably retrieve robots.txt for {base_url} "

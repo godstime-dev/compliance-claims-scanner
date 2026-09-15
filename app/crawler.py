@@ -332,6 +332,21 @@ def _build_robots_url(base_url: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, "/robots.txt", "", ""))
 
 
+def _sleep_if_retries_remain(attempt: int) -> None:
+    """
+    Suspends execution with exponential backoff prior to a retry.
+
+    If the current attempt equals or exceeds ROBOTS_FETCH_MAX_RETRIES, 
+    the function returns immediately without sleeping to avoid unnecessary 
+    delay before raising an exception.
+    """
+    if attempt >= ROBOTS_FETCH_MAX_RETRIES:
+        return
+
+    backoff_delay = ROBOTS_FETCH_RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+    time.sleep(backoff_delay)
+
+
 def fetch_robots_policy(
     base_url: str,
     user_agent: str,

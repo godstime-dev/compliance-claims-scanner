@@ -472,6 +472,23 @@ def _is_allowed_by_robots(
         return policy.parser.can_fetch(user_agent, url)
 
 
+def _get_origin(url: str) -> str:
+    """
+    Extracts the origin (scheme + netloc) from a target URL per RFC 9309.
+
+    Strips path, query parameters, and fragments, preserving only the scheme,
+    hostname, and port number (e.g., 'https://example.com:8080').
+
+    Args:
+        url: The candidate URL string to parse.
+
+    Returns:
+        The origin string formatted as 'scheme://netloc'.
+    """
+    parts = urlsplit(url)
+    return urlunsplit((parts.scheme, parts.netloc, "", "", ""))
+
+
 _robots_policy_cache: dict = {}
 
 

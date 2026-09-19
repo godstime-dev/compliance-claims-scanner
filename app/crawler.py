@@ -493,47 +493,39 @@ _robots_policy_cache: dict = {}
 
 
 def get_robots_policy(
-    base_url: str,
+    url: str,
     user_agent: str,
     ) -> RobotsPolicy:
     """
-    Retrieves and caches the robots.txt policy for a URL's origin.
+    Retrieves and caches the robots.txt policy for a URL's target origin.
 
-    Cache keys are structured as (scheme, hostname, port) per RFC 9309 §2.1,
-    ensuring distinct policies are maintained for http/https protocols or
-    non-standard ports. Transient fetch failures raise a RobotsError and
-    bypass cahce storage to allow future retry attempts.
+    Origin strings ('scheme://netloc') serve as cache keys per RFC 9309 §2.1. 
+    Subsequent calls targeting the same origin return the cached policy 
+    without executing HTTP requests. Transient fetch errors raise a RobotsError 
+    and bypass cache storage to allow future retry attempts.
 
     Args:
-        base_url: Any URL belonging to the target domain.
-        user_agent: Crawler user-agent string used for policy retrieval
+        url: Any URL belonging to the target origin.
+        user_agent: Crawler user-agent string used for policy retrieval.
 
     Returns:
-        A RobotsPolicy instance for the specified origin.
+        A RobotsPolicy instance for the target origin.
 
     Raises:
-        CrawlerError: If a valid hostname cannot be extracted from base_url.
+        CrawlerError: If a valid origin or hostname cannot be extracted from url.
         RobotsError: If crawling is explicitly disallowed or if robots.txt 
             cannot be retrieved after retries.
     """
+    origin = _get_origin(url)
 
-    parts = urlsplit(base_url)
-    hostname = parts.hostname
+    if not urlsplit(origin).hostname:
+        raise CrawlerError(f"Could not determine origin for: {url}")
 
-    if not hostname:
-        raise CrawlerError(f"Could not determine hostname for: {base_url}")
+    if origin in _robots_policy_cache:
+        return _robots_policy_cache[origin]
 
-    cache_key = (
-        parts.scheme.lower(),
-        hostname.lower(),
-        parts.port,
-        )
-
-    if cache_key in _robots_policy_cache:
-        return _robots_policy_cache[cache_key]
-
-    policy = fetch_robots_policy(base_url, user_agent)
-    _robots_policy_cache[cache_key] = policy
+    policy = fetch_robots_policy(origin, user_agent)
+    _robots_policy_cache[origin] = policy
 
     return policy
 

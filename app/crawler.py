@@ -334,7 +334,7 @@ def _build_robots_url(base_url: str) -> str:
 
 def _sleep_if_retries_remain(
     attempt: int,
-    max_retries: int = ROBOTS_FETCH_MAX_RETRIES,
+    max_attempts: int = ROBOTS_FETCH_MAX_RETRIES,
     base_delay: float = ROBOTS_FETCH_RETRY_DELAY_SECONDS,
     ) -> None:
     """
@@ -348,7 +348,7 @@ def _sleep_if_retries_remain(
         max_retries: Maximum permitted retries before giving up.
         base_delay: Base delay in seconds applied to exponential scaling.
     """
-    if attempt >= max_retries:
+    if attempt >= max_attempts:
         return
 
     backoff_delay = base_delay * (2 ** (attempt - 1))
@@ -448,3 +448,25 @@ def fetch_robots_policy(
         f"({last_error_description}). Per RFC 9309, an "
         f"unreachable robots.txt must be treated as full disallow."
         )
+
+
+def _is_allowed_by_robots(
+        url: str,
+        policy: RobotsPolicy,
+        user_agent: str,
+        ) -> bool:
+        """
+        Evaluate whether a target URL is permitted for crawling under a domain's policy.
+
+        Performs an in-memory evaluation against a pre-fetched RobotsPolicy instance
+        without triggering network requests.
+
+        Args:
+            url: Target URL or path to validate against policy rules.
+            policy: Pre-fetched RobotsPolicy instance for target domain.
+            user_agent: Crawler user-agent string used to evaluate matching rules.
+
+        Returns:
+            True if crawlig the URL is permitted under the policy; False otherwise.
+        """
+        return policy.parser.can_fetch(user_agent, url)

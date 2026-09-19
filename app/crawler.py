@@ -519,3 +519,48 @@ def get_robots_policy(
     _robots_policy_cache[cache_key] = policy
 
     return policy
+
+
+def _is_crawl_candidate(
+    candidate_url: str,
+    base_url: str,
+    user_agent: str,
+    ) -> bool:
+    """
+    Decide whether a discovered URL should be crawled.
+
+    Runs checks in order from cheapest to most expensive, so a
+    URL that's obviously ineligible (wrong scheme, external
+    domain, a known unsafe path) is rejected before any network
+    request is made to check robots.txt.
+
+    Args:
+        candidate_url: The URL being considered.
+        base_url: The site's starting URL, used to determine
+            what counts as "internal."
+        user_agent: The crawler's user-agent string.
+
+    Returns:
+        True if the URL is eligible to crawl, False otherwise.
+        Never raises for an ordinarily-ineligible URL — only a
+        genuine RobotsError (site-wide disallow, or robots.txt
+        unreachable after retries) propagates, since that should
+        stop the whole crawl, not just skip one URL.
+    """
+    try:
+        normalized = normalize_url(candidate_url)
+    except CrawlerError:
+        return False
+
+    if not _is_internal_url(normalized.value, base_url):
+        return False
+
+    if not _is_safe_default_path(normalized.value):
+        return False
+
+    policy = get_robots_policy(normalized.value, user_agent)
+
+    if not _is_allowed_by_robots(normalized.value, policy, user_agent):
+        return False
+
+    return True

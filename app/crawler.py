@@ -480,32 +480,37 @@ def get_robots_policy(
     user_agent: str,
     ) -> RobotsPolicy:
     """
-    Return the robots.txt policy for a URL's hostname, fetching
-    and caching it on first use. Subsequent calls for the same
-    hostname return the cached policy without a new network
-    request.
+    Retrieves and caches the robots.txt policy for a URL's origin.
+
+    Cache keys are structured as (scheme, hostname, port) per RFC 9309 §2.1,
+    ensuring distinct policies are maintained for http/https protocols or
+    non-standard ports. Transient fetch failures raise a RobotsError and
+    bypass cahce storage to allow future retry attempts.
 
     Args:
-        base_url: Any URL belonging to the domain in question —
-            only its hostname is used as the cache key.
-        user_agent: The crawler's user-agent string.
+        base_url: Any URL belonging to the target domain.
+        user_agent: Crawler user-agent string used for policy retrieval
 
     Returns:
-        A RobotsPolicy for the domain.
+        A RobotsPolicy instance for the specified origin.
 
     Raises:
-        RobotsError: If robots.txt disallows crawling, or could
-            not be reliably retrieved (see fetch_robots_policy).
-            This is NOT cached — a failed fetch will be retried
-            on the next call for the same hostname, since the
-            failure may have been transient.
+        CrawlerError: If a valid hostname cannot be extracted from base_url.
+        RobotsError: If crawling is explicitly disallowed or if robots.txt 
+            cannot be retrieved after retries.
     """
 
-    hostname = urlsplit(base_url).hostname
+    parts = urlsplit(base_url)
+    hostname = parts.hostname
+
     if not hostname:
         raise CrawlerError(f"Could not determine hostname for: {base_url}")
 
-    cache_key = hostname.lower()
+    cache_key = (
+        parts.scheme.lower(),
+        hostname.lower(),
+        parts.port,
+        )
 
     if cache_key in _robots_policy_cache:
         return _robots_policy_cache[cache_key]

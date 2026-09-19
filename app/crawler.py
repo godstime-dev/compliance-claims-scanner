@@ -470,3 +470,47 @@ def _is_allowed_by_robots(
             True if crawlig the URL is permitted under the policy; False otherwise.
         """
         return policy.parser.can_fetch(user_agent, url)
+
+
+_robots_policy_cache: dict = {}
+
+
+def get_robots_policy(
+    base_url: str,
+    user_agent: str,
+    ) -> RobotsPolicy:
+    """
+    Return the robots.txt policy for a URL's hostname, fetching
+    and caching it on first use. Subsequent calls for the same
+    hostname return the cached policy without a new network
+    request.
+
+    Args:
+        base_url: Any URL belonging to the domain in question —
+            only its hostname is used as the cache key.
+        user_agent: The crawler's user-agent string.
+
+    Returns:
+        A RobotsPolicy for the domain.
+
+    Raises:
+        RobotsError: If robots.txt disallows crawling, or could
+            not be reliably retrieved (see fetch_robots_policy).
+            This is NOT cached — a failed fetch will be retried
+            on the next call for the same hostname, since the
+            failure may have been transient.
+    """
+
+    hostname = urlsplit(base_url).hostname
+    if not hostname:
+        raise CrawlerError(f"Could not determine hostname for: {base_url}")
+
+    cache_key = hostname.lower()
+
+    if cache_key in _robots_policy_cache:
+        return _robots_policy_cache[cache_key]
+
+    policy = fetch_robots_policy(base_url, user_agent)
+    _robots_policy_cache[cache_key] = policy
+
+    return policy

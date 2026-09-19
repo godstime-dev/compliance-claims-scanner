@@ -536,25 +536,22 @@ def _is_crawl_candidate(
     user_agent: str,
     ) -> bool:
     """
-    Decide whether a discovered URL should be crawled.
+    Determines whether a discovered candidate URL is eligible for crawling.
 
-    Runs checks in order from cheapest to most expensive, so a
-    URL that's obviously ineligible (wrong scheme, external
-    domain, a known unsafe path) is rejected before any network
-    request is made to check robots.txt.
+    Executes filtering checks in order of execution cost (normalization -> 
+    domain scope -> path safety -> robots.txt evaluation).
 
     Args:
-        candidate_url: The URL being considered.
-        base_url: The site's starting URL, used to determine
-            what counts as "internal."
-        user_agent: The crawler's user-agent string.
+        candidate_url: Discovered candidate URL string.
+        base_url: Initial seed URL defining domain boundaries.
+        user_agent: Crawler user-agent string used for policy checks.
 
     Returns:
-        True if the URL is eligible to crawl, False otherwise.
-        Never raises for an ordinarily-ineligible URL — only a
-        genuine RobotsError (site-wide disallow, or robots.txt
-        unreachable after retries) propagates, since that should
-        stop the whole crawl, not just skip one URL.
+        True if candidate_url satisfies all criteria; False otherwise.
+
+    Raises:
+        RobotsError: If robots.txt retrieval for the candidate origin fails 
+            unrecoverably after retries.
     """
     try:
         normalized = normalize_url(candidate_url)
@@ -569,7 +566,4 @@ def _is_crawl_candidate(
 
     policy = get_robots_policy(normalized.value, user_agent)
 
-    if not _is_allowed_by_robots(normalized.value, policy, user_agent):
-        return False
-
-    return True
+    return _is_allowed_by_robots(normalized.value, policy, user_agent)

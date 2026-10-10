@@ -510,29 +510,25 @@ def get_robots_policy(
     user_agent: str,
     ) -> RobotsPolicy:
     """
-    Retrieves and caches the robots.txt policy for a URL's target origin.
+    Retrieves and caches the RobotsPolicy for a URL's target origin.
 
     Origin strings ('scheme://netloc') serve as cache keys per RFC 9309 §2.1. 
     Subsequent calls targeting the same origin return the cached policy 
-    without executing HTTP requests. Transient fetch errors raise a RobotsError 
-    and bypass cache storage to allow future retry attempts.
+    without executing new HTTP requests. Transient fetch errors raise a
+    RobotsError and bypass cache storage to allow future retry attempts.
 
     Args:
-        url: Any URL belonging to the target origin.
+        url: Target URL belonging to the target origin.
         user_agent: Crawler user-agent string used for policy retrieval.
 
     Returns:
         A RobotsPolicy instance for the target origin.
 
     Raises:
-        CrawlerError: If a valid origin or hostname cannot be extracted from url.
-        RobotsError: If crawling is explicitly disallowed or if robots.txt 
-            cannot be retrieved after retries.
+        CrawlerError: If the URL origin cannot be resolved by _get_origin.
+        RobotsError: If robots.txt disallows crawling or retrieval fails.
     """
     origin = _get_origin(url)
-
-    if not urlsplit(origin).hostname:
-        raise CrawlerError(f"Could not determine origin for: {url}")
 
     if origin in _robots_policy_cache:
         return _robots_policy_cache[origin]

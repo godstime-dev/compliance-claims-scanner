@@ -474,19 +474,32 @@ def _is_allowed_by_robots(
 
 def _get_origin(url: str) -> str:
     """
-    Extracts the origin (scheme + netloc) from a target URL per RFC 9309.
+    Extracts the normalized origin string ('scheme;//netloc') from a URL.
 
-    Strips path, query parameters, and fragments, preserving only the scheme,
-    hostname, and port number (e.g., 'https://example.com:8080').
+    Strips path, query, and fragments parameters while validating that the
+    scheme is supported and a valid hostname is present per RFC 9309 §2.1.
 
     Args:
-        url: The candidate URL string to parse.
+        url: URL string to parse.
 
     Returns:
-        The origin string formatted as 'scheme://netloc'.
+        A normalized origin string (e.g., 'https://example.com:8080').
+
+    Raises:
+        CrawlerError: If url parsing fails, uses an unsupported scheme, 
+            or lacks a hostname.
     """
-    parts = urlsplit(url)
-    return urlunsplit((parts.scheme, parts.netloc, "", "", ""))
+    try:
+        parts = urlsplit(url)
+    except ValueError as exc:
+        raise CrawlerError(
+            f"Could not parse URL: {url}"
+        ) from exc
+
+    if parts.scheme not in SUPPORTED_SCHEMES or not parts.hostname:
+        raise CrawlerError(f"Could not determine a valid origin for: {url}")
+    
+    return urlunsplit((parts.scheme.lower, parts.netloc, "", "", "",))
 
 
 _robots_policy_cache: dict = {}
